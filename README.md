@@ -21,12 +21,14 @@
 
 ## 安装
 
-从 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 下载：
+安装 DSH 后，只需从 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 下载：
 
-1. `dsh-remote-groups-build61.apk`：Android 8.0+、ARM64；应用名 **DSH Remote Groups**。可以覆盖同签名 Groups 旧版，与上游 Remote 独立安装。
-2. `ds-bot-0.1.7-mobile.20261020.2.tgz`：在电脑 DSH 插件管理中使用本地文件安装。包名仍为 `ds-bot`，会替换同名上游版本；提示重启时正常退出并重开 DSH。
-3. 电脑同时需要安装并启用 Remote 连接插件；已有兼容的 `ds-harness-remote` 可继续使用。本仓库保留其源码于 `remote/`。
-4. 配置各 CLI 的登录和模型，在电脑创建成员及群聊、设置工作目录。手机登录 Remote、信任并连接电脑，然后打开「群聊」。电脑和 Host 需要保持运行。
+1. **电脑插件** `dsh-remote-groups-0.1.0-preview.3.tgz`：在 DSH 插件管理中安装、启用，按提示重启。已包含 Remote 连接与群聊功能，无需另外安装两个上游插件。
+2. **手机 APK** `dsh-remote-groups-build61.apk`：Android 8.0+、ARM64；应用名 DSH Remote Groups，同签名旧版可覆盖安装。
+
+然后在合并插件设置中登录/授权 Remote，在电脑配置各 CLI 的登录、模型、成员和群聊；手机登录、信任并连接电脑后进入群聊。安装时需要联网获取运行依赖，电脑和 Host 需保持运行。
+
+**旧版用户：先停用 `ds-bot` 和 `ds-harness-remote`，再启用合并包，避免重复加载；保留数据目录。** 详细步骤和数据迁移范围见 [安装说明](docs/INSTALL.md)。
 
 发布附件中的许可证和第三方声明随安装包一并提供；再分发时请保留。
 

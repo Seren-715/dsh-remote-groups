@@ -1,0 +1,89 @@
+{
+  "name": "dsh-remote-groups",
+  "version": "0.1.0-preview.3",
+  "description": "DSH Remote Groups: one plugin for phone remote access and multi-agent group chats",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./plugin/index.js",
+  "homepage": "https://github.com/Seren-715/dsh-remote-groups",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seren-715/dsh-remote-groups.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Seren-715/dsh-remote-groups/issues"
+  },
+  "exports": {
+    ".": "./plugin/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./plugin/cordis.patch.yml"
+    }
+  },
+  "files": [
+    "plugin/index.js",
+    "plugin/cordis.patch.yml",
+    "LICENSE",
+    "LICENSES.md",
+    "NOTICE",
+    "LICENSES",
+    "README.md",
+    "README.en.md",
+    "docs/INSTALL.md",
+    "remote/index.js",
+    "remote/packages/plugin/dist/index.js",
+    "remote/packages/plugin/dist/client.github.js",
+    "remote/packages/plugin/bin/ds-harness-remote.js",
+    "remote/packages/plugin/public.d.ts",
+    "remote/packages/plugin/LICENSE",
+    "remote/dsh-plugin.json",
+    "remote/cordis.patch.yml",
+    "remote/locale/",
+    "remote/README.md",
+    "remote/package.json",
+    "host/ds-bot/index.js",
+    "host/ds-bot/src/host/",
+    "host/ds-bot/src/shared/",
+    "host/ds-bot/client.js",
+    "host/ds-bot/web-search.js",
+    "host/ds-bot/cordis.patch.yml",
+    "host/ds-bot/README.md",
+    "host/ds-bot/LICENSE",
+    "host/ds-bot/NOTICE",
+    "host/ds-bot/package.json"
+  ],
+  "scripts": {
+    "pack:plugin": "node scripts/pack-plugin.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "qrcode": "^1.5.4",
+    "werift": "0.24.4",
+    "zod": "^3.24.1",
+    "ws": "^8.21.3",
+    "@agentclientprotocol/claude-agent-acp": "0.93.0"
+  },
+  "optionalDependencies": {
+    "@roamhq/wrtc": "0.10.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-api-gateway": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-connection": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-locale": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-settings": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "react": ">=18.2.0 <19",
+    "@deepseek-ai/dsh-client-ui-settings-general": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-0 <0.2.2-0 || >=0.2.2-0 <0.2.3-0",
+    "@deepseek-ai/dsh-llm": "*",
+    "@deepseek-ai/dsh-tools": "*",
+    "@deepseek-ai/dsh-web": "*"
+  }
+}

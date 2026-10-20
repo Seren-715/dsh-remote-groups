@@ -1619,7 +1619,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     }
   });
 
-  // src/client-locale.ts
+  // packages/plugin/src/client-locale.ts
   var localeNamespace = "ds-harness-remote", en = {
     terminalRemote: "Remote terminal",
     terminalRemoteHint: "Allow trusted Remote devices to run an interactive shell as this Host user. On by default; independent of Agent approvals. Toggling saves and applies immediately.",
@@ -2162,7 +2162,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     codexVirtualSessions: "Sessions"
   };
 
-  // src/client/presentation.ts
+  // packages/plugin/src/client/presentation.ts
   var defaultPreferredTransports = ["lan", "p2p", "turn", "relay"];
   function normalizedPreferredTransports(value) {
     return value === void 0 || value.length === 0 ? [...defaultPreferredTransports] : [...value];
@@ -2272,7 +2272,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return t(mode === "LAN" ? "remoteNetworkLan" : mode === "P2P" ? "remoteNetworkP2p" : mode === "TURN" ? "remoteNetworkTurn" : mode === "Relay" ? "remoteNetworkRelay" : "connected");
   }
 
-  // src/client/header.ts
+  // packages/plugin/src/client/header.ts
   function createRemoteSessionHeaderAction(React) {
     function RemoteSessionHeaderAction(props) {
       let { t } = props, status = React.useSyncExternalStore(
@@ -2461,7 +2461,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     };
   }
 
-  // src/client/navigation.ts
+  // packages/plugin/src/client/navigation.ts
   var pendingWorkspaceSelectionKey = "dsh-remote:pending-workspace-selection";
   function storedWorkspaceSelection() {
     let raw = window.sessionStorage.getItem(pendingWorkspaceSelectionKey);
@@ -2481,7 +2481,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return snapshot.baselinesReady === !0 || snapshot.phase === "ready";
   }
 
-  // src/client/progress.ts
+  // packages/plugin/src/client/progress.ts
   function createRemoteProgressView(React) {
     function RemoteProgressView(props) {
       let progress = props.progress;
@@ -2555,7 +2555,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     }
   }
 
-  // src/client/settings.ts
+  // packages/plugin/src/client/settings.ts
   function createRemotePluginOptions(React) {
     function RemotePluginOptions(props) {
       let { t } = props, [open, setOpen] = React.useState(props.view === "page"), [serverUrl, setServerUrl] = React.useState(""), [portsBusy, setPortsBusy] = React.useState(!1), [previewPorts, setPreviewPorts] = React.useState(""), role = "host", [registrationCode, setRegistrationCode] = React.useState(""), [associations, setAssociations] = React.useState({}), [loaded, setLoaded] = React.useState(!1), [writable, setWritable] = React.useState(!1), [busy, setBusy] = React.useState(!1), [terminalEnabled, setTerminalEnabled] = React.useState(!1), [terminalBusy, setTerminalBusy] = React.useState(!1), [acpBackends, setAcpBackends] = React.useState([]), [acpAvailability, setAcpAvailability] = React.useState({}), [acpChecking, setAcpChecking] = React.useState({}), [acpCheckResults, setAcpCheckResults] = React.useState({}), [addingAcp, setAddingAcp] = React.useState(!1), [acpName, setAcpName] = React.useState(""), [acpCommand, setAcpCommand] = React.useState(""), [acpArguments, setAcpArguments] = React.useState("acp"), [reconnectBusy, setReconnectBusy] = React.useState(!1), [hostStatus, setHostStatus] = React.useState(void 0), [hostName, setHostName] = React.useState(""), [hostDeviceId, setHostDeviceId] = React.useState(""), [notice, setNotice] = React.useState(void 0), [error, setError] = React.useState(void 0), [settingsView, setSettingsView] = React.useState(void 0), persistedServerUrl = settingsView?.config.serverUrl ?? "https://dsh.r2049.cn", association = associations.client ?? associations.host, serverDirty = settingsView !== void 0 && serverUrl !== persistedServerUrl, draftDirty = serverDirty, applyView = (view) => {
@@ -2990,7 +2990,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return RemotePluginOptions;
   }
 
-  // src/client/shell.ts
+  // packages/plugin/src/client/shell.ts
   function installStyle(clientModuleId2) {
     let style = document.createElement("style");
     return style.dataset.plugin = clientModuleId2, style.dataset.pluginCss = "dsh-remote", style.textContent = [
@@ -3106,13 +3106,13 @@ Minimum version required to store current data is: ` + bestVersion + `.
     };
   }
 
-  // src/client/workspaces.ts
+  // packages/plugin/src/client/workspaces.ts
   var import_qrcode = __toESM(require_browser(), 1);
 
-  // src/client/icons.ts
+  // packages/plugin/src/client/icons.ts
   var deepSeekWorkspaceIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAACVBMVEUAAADy8vXx8fUsA3vyAAAAAXRSTlMAQObYZgAAAOxJREFUWMPtlsEOwyAMQxP+/6OnTZMGxHGcot3wDYgfhkJbs6urprzveGtu9d1NgEdto8w93GuA7zPS2RFg7ynsCOAokbtAmLr2YaeKgJ6fxpT8jCAC0qSqPyNoO5DXdvyouj4ClFAdYaDxK09uiBDCIYBf6CxLesnR0uF2pG+JmhCqrUb0AOvjjoQaYDTCEAAgMg5grhAeAQIB+/M15IcKlnUIp4CkTCd0AKb4zVsRSJVGYEVzT0agK107IMGMEurvromEpaX4wzk/IKw378kq4LafED6Oowxfk7AP2q8W16EdM3p29Eyvrv6vF0WIBfBziKyCAAAAAElFTkSuQmCC", gptWorkspaceIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAclBMVEX////v7+++wMf////s7O3k5OTExcrX2Ny6vMTv8PPW19yXmqRqboJmaHd3eoaqrLPs7fGMjpfb3eKlpq1eYXOxs7pWWWd+gY5HSVdRVGVub3k+QU74+Pg4OkcvMT1ISlUoKjUiIy4fICueoKkaGyUSFB21Bp+qAAAAAXRSTlMAQObYZgAABChJREFUWMPtl916qjoQhlsdEwIECEgMYCBxx/u/xT1DrFUL1LO1DtY8LSLJvPnmB4gfH//sr7TPDfvdebf/xXZbkE/4zZ0MVhGHd9zJDsv+7F3//Z69tT5wljAu3tXw+TIlzXKJlhflYmJ+5uF5WpWhb54X+C/zZCmT2wJA4dJZwus0UYjIGqWyMhVbEp4yKNRRqlv0opW5PJLJ4rFJXvP4JKDRMqturBZjkMVJFYjR6iHQDQDI4+k2k51wZbWrqwp4mR/1CVYATyko9TFGxBUqL5IvMbXSWt0T8bkGgFLqgqZBI/Uxbx5UAxLaNcCNLBpttM7wbCc1pmJOpWAsDtey68UaQMyrFgb9uxLPjqg3+nGluyKN0XUdWw0BJ0NvTFFqgzpr9J+Dh4w0Ga1qkqBNswagxdRgFPAbgHRQG5jumGWyMxrTIaRRa4AzFs0YrNMXgI4MJWnsKYFhGNMnIh/mBOPsV8CZBFjN9w8ArowxnZzDr5IcvxTaKpxJCVsoI3SWysz1UM4AqQdzlCgho1IKrK+x1mKFzisANtgEU8E7GwHDgOqxe4w9tnM166wbaA2xBMBLrTWcAGYGdCiYVUJUrMCF+7l6gklrW1RwPi8ByjuActANqhKzVWoYrFGcCFzbDgNaBrTWpncFQMcI2DfWoAiDqRCiHcYM/ZdCEKkZqfR8spj4F0CiJjv2gHL6URNoCQDaYacL6O1oFDO2eQDUFP7AKdCRdC4CRDZaNifbjA41l/uYb/SZMAFNTBGzY7sG4J2jTsJgToOzIzXF3HZqBpSOAGduXbkGEKV1OqVGqRJpRxtvwbSw5IqAiUJItwBCOT9R32FCGo3nCkAN3t0UTBRC6zDONcBeOee9pr4T+ASbnDOdc5OmtREwEEB5w8Wqgt4bOV5c7Lt9iiK8zdP/IsBbutUGX4gNwEVCqd3FUt/xYnRWt7BvPBYQjwjAGXa3ASguHVAZ/WXKlA3eZDX1wRegFsr7E2wAlB9xFbx/7MV70kFT8aqNgLL3F8nFBmA3hrn/IJHjKJOK2oj1WI4Z4FzwN/81AOhgYD6v2xbIvaZIurLC9AfvB1WLTYAoXejF1xeBL5cpBIyEbmxkZymIXwDQh1BAfOrhI1lfwtgz8tozF5T4ttf3+32AyxC6klwAgw/YVTHpoK82xYt3wLP/Bw4AAI4D7/01TLKXBj9NEz2wEuGiKpoy68S/FwCLMQAZ3gXhihaCa25vQo6RyToOz9PE6wYjJgGi1YnqZX8qMIK+TDlnargGzSv4NvFjlwXf/nfLLMrAB4O/Xl3BH0d+RIASFgDA8IYMIXgr2+cBsbDdPSwAAHjSZFmb3txETCKIxc0uWwI8rxsLJcTiVndNwyMgKljbbNN2/zcEAja2+4RgIDYN2Bu/WtAOaEodnu2dnzz/7I/Y/w/LaEcX/MdfAAAAAElFTkSuQmCC";
 
-  // src/client/workspaces.ts
+  // packages/plugin/src/client/workspaces.ts
   function createRemoteWorkspaceAction(React) {
     let RemoteProgressView = createRemoteProgressView(React);
     function RemoteWorkspaceAction(props) {
@@ -4217,10 +4217,10 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return RemoteWorkspaceAction;
   }
 
-  // src/control-route.ts
+  // packages/plugin/src/control-route.ts
   var CONTROL_RPC_PREFIX = "/ds-harness-remote", STATUS_STREAM_ENDPOINT = "status.events", STATUS_STREAM_PATH = `${CONTROL_RPC_PREFIX}/${STATUS_STREAM_ENDPOINT}`;
 
-  // src/plugin-route-client.ts
+  // packages/plugin/src/plugin-route-client.ts
   var PluginRouteFailure = class extends Error {
     constructor(code, message) {
       super(message);
@@ -4378,7 +4378,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return typeof value == "object" && value !== null && !Array.isArray(value);
   }
 
-  // src/remote-file-content-provider.ts
+  // packages/plugin/src/remote-file-content-provider.ts
   function shouldUseRemoteFileViewer(status) {
     return status.mode === "remote" && status.remoteFeatures?.fileViewer === !0;
   }
@@ -4449,7 +4449,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     return bytes;
   }
 
-  // src/status-stream.ts
+  // packages/plugin/src/status-stream.ts
   function parseStatus(data) {
     if (typeof data == "string")
       try {
@@ -4503,7 +4503,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
     };
   }
 
-  // src/client.ts
+  // packages/plugin/src/client.ts
   var clientModuleId = "ds-harness-remote", controlRouteBackoffStepsMs = [1e3, 2e3, 5e3, 1e4, 3e4], ControlRouteUnavailableError = class extends Error {
     constructor(message) {
       super(message), this.name = "ControlRouteUnavailableError";
@@ -4782,6 +4782,16 @@ Minimum version required to store current data is: ` + bestVersion + `.
         }, RemotePluginOptions)), ctx.slots.inject("plugins.bundle.config", () => ctx.slots.register({
           name: "plugins.bundle.config",
           key: "ds-harness-remote",
+          locale: localeNamespace,
+          inject: () => ({ control, statusFeed })
+        }, RemotePluginOptions)), ctx.slots.inject("plugins.row.config", () => ctx.slots.register({
+          name: "plugins.row.config",
+          key: "dsh-remote-groups#ds-harness-remote",
+          locale: localeNamespace,
+          inject: () => ({ control, statusFeed })
+        }, RemotePluginOptions)), ctx.slots.inject("plugins.bundle.config", () => ctx.slots.register({
+          name: "plugins.bundle.config",
+          key: "dsh-remote-groups",
           locale: localeNamespace,
           inject: () => ({ control, statusFeed })
         }, RemotePluginOptions));

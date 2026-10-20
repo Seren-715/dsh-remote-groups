@@ -1,5 +1,14 @@
 # Preview verification
 
+## Unified computer plugin preview.3
+
+- One root package `dsh-remote-groups` contains both prebuilt component runtimes, separate browser manifests/bundles and their licenses. Official DSH relative bundle paths load the two package roots; neither upstream plugin is an npm dependency or a separate user download. Installation uses `--ignore-scripts`.
+- Official DSH Desktop CLI 0.2.1-rc.2 installed the final archive into an empty isolated Web profile. Its only third-party profile dependency was `dsh-remote-groups`; both `ds-bot` and `ds-harness-remote` appeared exactly once in the browser boot graph, `/api/bot` state succeeded, and no entry activation errors were reported.
+- A separate migration test installed the two earlier component archives, retained an invented Bot marker, removed both old packages through the official CLI and installed the combined archive. The marker and Remote identity remained unchanged, only the combined dependency remained, and both clients loaded once without activation errors. This verifies default data locations; manually asserted old package names/custom home overrides require reapplying settings as described in INSTALL.
+- Playwright used the actual isolated DSH page to open the combined plugin details, render Remote login/settings, toggle/save the remote-terminal setting, and open the Bot interface with the preserved test member. No real model Prompt was sent. Test servers/browser were stopped.
+- Remote TypeScript check passed. A broad unchanged-runtime suite completed with 377 passing and 11 failing tests (388 total): failures included Windows symlink/rename privileges, a non-existent cwd assumption, a timeout, stream-state expectation and RTC `p2p` versus `lan` expectations. This suite is not claimed fully passing, and these remaining failures are not fixed by installation packaging. The isolated installation and actual browser checks above passed.
+- Android remains the previously tested build61 APK; no phone code changed for the combined desktop installation. Physical-phone network and live-Agent E2E acceptance remains separate.
+
 ## Android build 61 and Host .20261020.2
 
 Public APK: `dsh-remote-groups-build61.apk`, 53,732,565 bytes, SHA256 `84e4459574ce1d82fe976587bcd812d5de8663140a2ebff7846976eef72836c7`. VersionCode61 / ARM64 / API26+. Release completed in 7m38s. APK v2/v3 signatures match the existing Groups certificate, 16KiB alignment passed, and the packaged JS equals the generated final bundle. All 1,075 non-signature runtime entries remain byte-for-byte unchanged after adding embedded notices; draft code is present and isolated fixture markers are absent.

@@ -37,3 +37,7 @@ For ARM64 on Windows, with a full JDK17 and Android SDK/NDK available:
 See `remote/apps/android/README.md` for existing workspace/rendering prerequisites and `remote/docs/design/android-group-chat.md` for the integration protocol. The default generated signing configuration is for development. Use your own private signing key for your distribution; the key for the published preview APK is not in this repository. Your self-signed build cannot cover-install this preview unless the signing certificate matches. Keep generated native/build folders and keys out of Git.
 
 Remote's GitHub-install entry remains in `remote/` with its built plugin distribution. Refer to its original installation docs for DSH compatibility. This repository does not publish to npm automatically.
+
+## Unified computer plugin
+
+After preparing both component builds, run `npm run pack:plugin` at the repository root. The root manifest ships the existing runtime/client files and license notices. No install-time build script is required. Use the resulting `dsh-remote-groups` archive instead of installing either component separately. See [INSTALL](INSTALL.md) for migration.
