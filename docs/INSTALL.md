@@ -6,15 +6,15 @@
 
 | 电脑现状 | 安装哪个包 | 原插件怎么处理 |
 | --- | --- | --- |
-| 没装过两个上游 | `dsh-remote-groups-0.1.0-preview.4.tgz` 完整版 | 无需另装上游 |
-| 已有 Remote、Bot，或两者 | `dsh-remote-groups-companion-0.1.0-preview.4.tgz` 配套版 | 保留安装；标准运行入口由配套版停用 |
+| 没装过两个上游 | `dsh-remote-groups-0.1.0-preview.5.tgz` 完整版 | 无需另装上游 |
+| 已有 Remote、Bot，或两者 | `dsh-remote-groups-companion-0.1.0-preview.5.tgz` 配套版 | 保留安装；标准运行入口由配套版停用 |
 | 已在用本项目完整包 | 更新完整版 | 不再安装配套版 |
 
 两种版本共享相同增强组件与功能，体积接近。手机转发、附件与本地 Agent 群聊依赖修改过的组件内部接口，所以配套版同样携带增强组件，不能只加载任意原版上游。两种版本不能同时启用。
 
 ## 新用户：完整版
 
-推荐在 DSH → 添加插件中直接输入 `dsh-remote-groups`，安装并启用后正常重启。完整版已发布到 [npm](https://www.npmjs.com/package/dsh-remote-groups)，当前默认版本 `0.1.0-preview.4`，仍属预览版；需要固定版本可填写 `dsh-remote-groups@0.1.0-preview.4`。也可以继续使用下方本地 `.tgz` 安装方式。
+推荐在 DSH → 添加插件中直接输入 `dsh-remote-groups`，安装并启用后正常重启。完整版已发布到 [npm](https://www.npmjs.com/package/dsh-remote-groups)，当前默认版本 `0.1.0-preview.5`，仍属预览版；需要固定版本可填写 `dsh-remote-groups@0.1.0-preview.5`。也可以继续使用下方本地 `.tgz` 安装方式。
 
 在 DSH → 插件 → 添加插件中选择/填写完整包本地文件，安装并启用，然后正常退出并重启 DSH。包内已包含群聊 Host、桌面群聊、Remote Host 和 Remote 设置。无需另外下载 `ds-bot`、`ds-harness-remote` 或上游 APK。
 
@@ -33,6 +33,19 @@
 
 先停用旧 `ds-bot`、`ds-harness-remote`，再启用完整包并重启，保留数据目录。默认数据沿用；旧 `name` 断言不会匹配完整包相对路径，自定义配置需重填。不要同时运行完整版和旧上游。
 
+## 手机端下载入口
+
+<img src="images/mobile-download-settings-light.png" width="850" alt="电脑插件下载区：左侧百度网盘，右侧夸克网盘，各自显示二维码、提取码和下载按钮">
+
+从电脑插件 preview.5 起，进入插件详情页顶部的“下载手机端”，即可扫码或点击下载。百度在左、夸克在右，两者提供 Android build61；GitHub 仍作为备用。
+
+| 百度网盘 | 夸克网盘 |
+| --- | --- |
+| [下载 build61](https://pan.baidu.com/s/10SJoD5KiJfmoEqfi-LQm-Q?pwd=0715)，提取码 `0715` | [下载 build61](https://pan.quark.cn/s/ae9efa7ba473?pwd=V5NZ)，提取码 `V5NZ` |
+| <img src="images/mobile-baidu.png" width="200" alt="百度网盘 build61 下载二维码"> | <img src="images/mobile-quark.png" width="200" alt="夸克网盘 build61 下载二维码"> |
+
+手机文件名为 `dsh-remote-groups-build61.apk`。发布版 SHA256：`84e4459574ce1d82fe976587bcd812d5de8663140a2ebff7846976eef72836c7`。网盘链接由项目维护者提供，二维码只编码相应公开下载地址和提取码，不是电脑登录/授权二维码。旧 build61 用户无需重装手机端。网盘失效或无法访问时，可用 [GitHub 备用下载](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-build61.apk)。
+
 ## 连接与依赖
 
 安装器需要联网获取普通运行依赖。两种包都不捆绑 DSH、各 Agent CLI、模型额度或登录凭据。配置 Remote 登录/主机授权后，手机登录同一连接服务并信任电脑。CLI 登录、模型、工作目录按自己的环境设置；电脑和 Host 需要保持运行。
@@ -40,7 +53,7 @@
 命令行安装（将文件名换成所选版本；已有上游请先安装上游，再执行）：
 
 ```sh
-dsh plugin --profile desktop add file:/absolute/path/dsh-remote-groups-companion-0.1.0-preview.4.tgz --ignore-scripts
+dsh plugin --profile desktop add file:/absolute/path/dsh-remote-groups-companion-0.1.0-preview.5.tgz --ignore-scripts
 ```
 
 ## 开发与打包

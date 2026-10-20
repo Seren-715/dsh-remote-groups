@@ -1582,7 +1582,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
   // node_modules/qrcode/lib/browser.js
   var require_browser = __commonJS({
     "node_modules/qrcode/lib/browser.js"(exports) {
-      var canPromise = require_can_promise(), QRCode2 = require_qrcode(), CanvasRenderer = require_canvas(), SvgRenderer = require_svg_tag();
+      var canPromise = require_can_promise(), QRCode3 = require_qrcode(), CanvasRenderer = require_canvas(), SvgRenderer = require_svg_tag();
       function renderCanvas(renderFunc, canvas, text, opts, cb) {
         let args = [].slice.call(arguments, 1), argsNum = args.length, isLastArgCb = typeof args[argsNum - 1] == "function";
         if (!isLastArgCb && !canPromise())
@@ -1596,7 +1596,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
             throw new Error("Too few arguments provided");
           return argsNum === 1 ? (text = canvas, canvas = opts = void 0) : argsNum === 2 && !canvas.getContext && (opts = text, text = canvas, canvas = void 0), new Promise(function(resolve, reject) {
             try {
-              let data = QRCode2.create(text, opts);
+              let data = QRCode3.create(text, opts);
               resolve(renderFunc(data, canvas, opts));
             } catch (e) {
               reject(e);
@@ -1604,13 +1604,13 @@ Minimum version required to store current data is: ` + bestVersion + `.
           });
         }
         try {
-          let data = QRCode2.create(text, opts);
+          let data = QRCode3.create(text, opts);
           cb(null, renderFunc(data, canvas, opts));
         } catch (e) {
           cb(e);
         }
       }
-      exports.create = QRCode2.create;
+      exports.create = QRCode3.create;
       exports.toCanvas = renderCanvas.bind(null, CanvasRenderer.render);
       exports.toDataURL = renderCanvas.bind(null, CanvasRenderer.renderToDataURL);
       exports.toString = renderCanvas.bind(null, function(data, _, opts) {
@@ -1621,6 +1621,18 @@ Minimum version required to store current data is: ` + bestVersion + `.
 
   // packages/plugin/src/client-locale.ts
   var localeNamespace = "ds-harness-remote", en = {
+    mobileDownloadTitle: "Get the Android app",
+    mobileDownloadHint: "Scan with your phone or open a download link. After installation, sign in to the same connection service and connect to this computer.",
+    mobileDownloadBaidu: "Baidu Netdisk",
+    mobileDownloadQuark: "Quark Drive",
+    mobileDownloadOpen: "Download from {source}",
+    mobileDownloadCode: "Access code:",
+    mobileDownloadQrAlt: "Scan to download the Android app from {source}",
+    mobileDownloadQrLoading: "Preparing QR code\u2026",
+    mobileDownloadQrFailed: "QR code unavailable. Use the download link below.",
+    mobileDownloadVersion: "build61 \xB7 Android 8.0+ \xB7 ARM64",
+    mobileDownloadGithub: "GitHub direct download",
+    mobileDownloadGuide: "Installation guide",
     terminalRemote: "Remote terminal",
     terminalRemoteHint: "Allow trusted Remote devices to run an interactive shell as this Host user. On by default; independent of Agent approvals. Toggling saves and applies immediately.",
     terminalRemoteUnavailable: "Remote terminal is unavailable. Enable Remote terminal in the Host Remote settings; the switch applies immediately.",
@@ -1891,6 +1903,18 @@ Minimum version required to store current data is: ` + bestVersion + `.
     claudeVirtualWorkspace: "Claude virtual workspace",
     codexVirtualSessions: "Sessions"
   }, zh = {
+    mobileDownloadTitle: "\u4E0B\u8F7D\u624B\u673A\u7AEF",
+    mobileDownloadHint: "\u7528\u624B\u673A\u626B\u7801\u6216\u6253\u5F00\u7F51\u76D8\u4E0B\u8F7D\u3002\u5B89\u88C5\u540E\u767B\u5F55\u540C\u4E00\u8FDE\u63A5\u670D\u52A1\uFF0C\u518D\u8FDE\u63A5\u8FD9\u53F0\u7535\u8111\u3002",
+    mobileDownloadBaidu: "\u767E\u5EA6\u7F51\u76D8",
+    mobileDownloadQuark: "\u5938\u514B\u7F51\u76D8",
+    mobileDownloadOpen: "\u6253\u5F00{source}\u4E0B\u8F7D",
+    mobileDownloadCode: "\u63D0\u53D6\u7801\uFF1A",
+    mobileDownloadQrAlt: "\u626B\u7801\u901A\u8FC7{source}\u4E0B\u8F7D Android \u624B\u673A\u7AEF",
+    mobileDownloadQrLoading: "\u6B63\u5728\u751F\u6210\u4E8C\u7EF4\u7801\u2026",
+    mobileDownloadQrFailed: "\u4E8C\u7EF4\u7801\u6682\u4E0D\u53EF\u7528\uFF0C\u8BF7\u4F7F\u7528\u4E0B\u65B9\u4E0B\u8F7D\u94FE\u63A5\u3002",
+    mobileDownloadVersion: "build61 \xB7 Android 8.0+ \xB7 ARM64",
+    mobileDownloadGithub: "GitHub \u76F4\u63A5\u4E0B\u8F7D",
+    mobileDownloadGuide: "\u5B89\u88C5\u8BF4\u660E",
     terminalRemote: "\u8FDC\u7A0B\u7EC8\u7AEF",
     terminalRemoteHint: "\u5141\u8BB8\u53D7\u4FE1\u4EFB\u7684 Remote \u8BBE\u5907\u4EE5\u6B64 Host \u7528\u6237\u8EAB\u4EFD\u8FD0\u884C\u4EA4\u4E92\u5F0F Shell\u3002\u9ED8\u8BA4\u5F00\u542F\uFF0C\u72EC\u7ACB\u4E8E Agent \u5BA1\u6279\uFF1B\u5207\u6362\u540E\u7ACB\u5373\u4FDD\u5B58\u5E76\u751F\u6548\u3002",
     terminalRemoteUnavailable: "\u8FDC\u7A0B\u7EC8\u7AEF\u4E0D\u53EF\u7528\u3002\u8BF7\u5728 Host \u7684 Remote \u8BBE\u7F6E\u4E2D\u5F00\u542F\u300C\u8FDC\u7A0B\u7EC8\u7AEF\u300D\uFF0C\u5F00\u5173\u4F1A\u7ACB\u5373\u751F\u6548\u3002",
@@ -2555,8 +2579,55 @@ Minimum version required to store current data is: ` + bestVersion + `.
     }
   }
 
+  // packages/plugin/src/client/mobile-downloads.ts
+  var import_qrcode = __toESM(require_browser(), 1), mobileDownloads = [
+    { id: "baidu", title: "mobileDownloadBaidu", url: "https://pan.baidu.com/s/10SJoD5KiJfmoEqfi-LQm-Q?pwd=0715", code: "0715" },
+    { id: "quark", title: "mobileDownloadQuark", url: "https://pan.quark.cn/s/ae9efa7ba473?pwd=V5NZ", code: "V5NZ" }
+  ], mobileApkUrl = "https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-build61.apk", mobileGuideUrl = "https://github.com/Seren-715/dsh-remote-groups/blob/main/docs/INSTALL.md";
+  function createMobileDownloads(React) {
+    return function({ t }) {
+      let [images, setImages] = React.useState({}), [failed, setFailed] = React.useState(!1);
+      return React.useEffect(() => {
+        let disposed = !1;
+        return Promise.all(mobileDownloads.map(async (source) => [source.id, await import_qrcode.default.toDataURL(source.url, {
+          width: 184,
+          margin: 3,
+          errorCorrectionLevel: "M",
+          color: { dark: "#000000ff", light: "#ffffffff" }
+        })])).then((values) => {
+          disposed || setImages(Object.fromEntries(values));
+        }).catch(() => {
+          disposed || setFailed(!0);
+        }), () => {
+          disposed = !0;
+        };
+      }, []), React.createElement(
+        "section",
+        { className: "dshRemoteMobileDownload", "aria-label": t("mobileDownloadTitle") },
+        React.createElement("h3", null, t("mobileDownloadTitle")),
+        React.createElement("p", null, t("mobileDownloadHint")),
+        React.createElement("div", { className: "dshRemoteMobileSources" }, mobileDownloads.map((source) => React.createElement(
+          "div",
+          { key: source.id, className: "dshRemoteMobileSource" },
+          React.createElement("strong", null, t(source.title)),
+          React.createElement("div", { className: "dshRemoteMobileQr" }, images[source.id] ? React.createElement("img", { src: images[source.id], width: 184, height: 184, alt: t("mobileDownloadQrAlt", { source: t(source.title) }) }) : React.createElement("span", { role: "status" }, t(failed ? "mobileDownloadQrFailed" : "mobileDownloadQrLoading"))),
+          React.createElement("span", null, t("mobileDownloadCode"), " ", React.createElement("code", null, source.code)),
+          React.createElement("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", className: "dshRemoteMobileOpen" }, t("mobileDownloadOpen", { source: t(source.title) }))
+        ))),
+        React.createElement(
+          "p",
+          { className: "dshRemoteMobileFooter" },
+          React.createElement("span", null, t("mobileDownloadVersion")),
+          React.createElement("a", { href: mobileApkUrl, target: "_blank", rel: "noopener noreferrer" }, t("mobileDownloadGithub")),
+          React.createElement("a", { href: mobileGuideUrl, target: "_blank", rel: "noopener noreferrer" }, t("mobileDownloadGuide"))
+        )
+      );
+    };
+  }
+
   // packages/plugin/src/client/settings.ts
   function createRemotePluginOptions(React) {
+    let MobileDownloads = createMobileDownloads(React);
     function RemotePluginOptions(props) {
       let { t } = props, [open, setOpen] = React.useState(props.view === "page"), [serverUrl, setServerUrl] = React.useState(""), [portsBusy, setPortsBusy] = React.useState(!1), [previewPorts, setPreviewPorts] = React.useState(""), role = "host", [registrationCode, setRegistrationCode] = React.useState(""), [associations, setAssociations] = React.useState({}), [loaded, setLoaded] = React.useState(!1), [writable, setWritable] = React.useState(!1), [busy, setBusy] = React.useState(!1), [terminalEnabled, setTerminalEnabled] = React.useState(!1), [terminalBusy, setTerminalBusy] = React.useState(!1), [acpBackends, setAcpBackends] = React.useState([]), [acpAvailability, setAcpAvailability] = React.useState({}), [acpChecking, setAcpChecking] = React.useState({}), [acpCheckResults, setAcpCheckResults] = React.useState({}), [addingAcp, setAddingAcp] = React.useState(!1), [acpName, setAcpName] = React.useState(""), [acpCommand, setAcpCommand] = React.useState(""), [acpArguments, setAcpArguments] = React.useState("acp"), [reconnectBusy, setReconnectBusy] = React.useState(!1), [hostStatus, setHostStatus] = React.useState(void 0), [hostName, setHostName] = React.useState(""), [hostDeviceId, setHostDeviceId] = React.useState(""), [notice, setNotice] = React.useState(void 0), [error, setError] = React.useState(void 0), [settingsView, setSettingsView] = React.useState(void 0), persistedServerUrl = settingsView?.config.serverUrl ?? "https://dsh.r2049.cn", association = associations.client ?? associations.host, serverDirty = settingsView !== void 0 && serverUrl !== persistedServerUrl, draftDirty = serverDirty, applyView = (view) => {
         setSettingsView(view), setServerUrl(view.config.serverUrl ?? "https://dsh.r2049.cn"), setTerminalEnabled(view.config.terminal?.enabled ?? !0), setPreviewPorts((view.config.loopback?.ports ?? []).join(", ")), setAcpBackends((view.config.acp?.backends ?? []).map((item) => ({ id: item.id, enabled: item.enabled !== !1 }))), setAcpAvailability(view.acpAvailability ?? {}), setAssociations(view.associations ?? (view.association === void 0 ? {} : { host: view.association })), setWritable(view.writable), setLoaded(!0);
@@ -2819,6 +2890,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
         open ? React.createElement(
           "div",
           { className: "dshRemotePluginCardBody" },
+          React.createElement(MobileDownloads, { t }),
           loaded ? association !== void 0 ? React.createElement(
             "div",
             { className: "dshRemoteSettings" },
@@ -2994,6 +3066,11 @@ Minimum version required to store current data is: ` + bestVersion + `.
   function installStyle(clientModuleId2) {
     let style = document.createElement("style");
     return style.dataset.plugin = clientModuleId2, style.dataset.pluginCss = "dsh-remote", style.textContent = [
+      ".dshRemoteMobileDownload{box-sizing:border-box;margin:0 0 20px;padding:16px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;color:var(--dsw-alias-label-primary);min-width:0}.dshRemoteMobileDownload h3{font-size:15px;line-height:1.5;margin:0 0 6px}.dshRemoteMobileDownload p{font-size:13px;line-height:1.6;margin:0 0 14px;color:var(--dsw-alias-label-secondary)}",
+      ".dshRemoteMobileSources{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px}.dshRemoteMobileSource{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;padding:14px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;font-size:13px}.dshRemoteMobileSource strong{font-size:14px}.dshRemoteMobileSource code{user-select:text;font-size:14px}",
+      ".dshRemoteMobileQr{display:flex;align-items:center;justify-content:center;width:184px;max-width:100%;min-height:184px;background:#fff;color:#222;border-radius:4px;overflow:hidden}.dshRemoteMobileQr img{display:block;width:184px;height:auto;max-width:100%}.dshRemoteMobileQr span{padding:12px;text-align:center;line-height:1.5}",
+      ".dshRemoteMobileOpen{box-sizing:border-box;display:inline-flex;justify-content:center;align-items:center;min-height:36px;width:100%;padding:6px 12px;border-radius:8px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-3);text-decoration:none;overflow-wrap:anywhere;text-align:center}.dshRemoteMobileOpen:hover{opacity:.85}.dshRemoteMobileDownload a:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:3px}",
+      ".dshRemoteMobileDownload .dshRemoteMobileFooter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:14px 0 0;font-size:12px}.dshRemoteMobileFooter a{color:var(--dsw-alias-label-primary);text-underline-offset:3px}",
       'html.dshRemoteTargetActive button[aria-label="\u6DFB\u52A0\u5DE5\u4F5C\u533A"],html.dshRemoteTargetActive button[aria-label="Add workspace"]{display:none!important}',
       'html.dshRemoteCodexTargetActive [data-composer-card] button[aria-haspopup="listbox"][aria-label="\u6307\u4EE4"],html.dshRemoteCodexTargetActive [data-composer-card] button[aria-haspopup="listbox"][aria-label="Commands"]{display:none!important}',
       "[data-dsh-remote-hidden-action]{display:none!important}",
@@ -3107,7 +3184,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
   }
 
   // packages/plugin/src/client/workspaces.ts
-  var import_qrcode = __toESM(require_browser(), 1);
+  var import_qrcode2 = __toESM(require_browser(), 1);
 
   // packages/plugin/src/client/icons.ts
   var deepSeekWorkspaceIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAACVBMVEUAAADy8vXx8fUsA3vyAAAAAXRSTlMAQObYZgAAAOxJREFUWMPtlsEOwyAMQxP+/6OnTZMGxHGcot3wDYgfhkJbs6urprzveGtu9d1NgEdto8w93GuA7zPS2RFg7ynsCOAokbtAmLr2YaeKgJ6fxpT8jCAC0qSqPyNoO5DXdvyouj4ClFAdYaDxK09uiBDCIYBf6CxLesnR0uF2pG+JmhCqrUb0AOvjjoQaYDTCEAAgMg5grhAeAQIB+/M15IcKlnUIp4CkTCd0AKb4zVsRSJVGYEVzT0agK107IMGMEurvromEpaX4wzk/IKw378kq4LafED6Oowxfk7AP2q8W16EdM3p29Eyvrv6vF0WIBfBziKyCAAAAAElFTkSuQmCC", gptWorkspaceIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAclBMVEX////v7+++wMf////s7O3k5OTExcrX2Ny6vMTv8PPW19yXmqRqboJmaHd3eoaqrLPs7fGMjpfb3eKlpq1eYXOxs7pWWWd+gY5HSVdRVGVub3k+QU74+Pg4OkcvMT1ISlUoKjUiIy4fICueoKkaGyUSFB21Bp+qAAAAAXRSTlMAQObYZgAABChJREFUWMPtl916qjoQhlsdEwIECEgMYCBxx/u/xT1DrFUL1LO1DtY8LSLJvPnmB4gfH//sr7TPDfvdebf/xXZbkE/4zZ0MVhGHd9zJDsv+7F3//Z69tT5wljAu3tXw+TIlzXKJlhflYmJ+5uF5WpWhb54X+C/zZCmT2wJA4dJZwus0UYjIGqWyMhVbEp4yKNRRqlv0opW5PJLJ4rFJXvP4JKDRMqturBZjkMVJFYjR6iHQDQDI4+k2k51wZbWrqwp4mR/1CVYATyko9TFGxBUqL5IvMbXSWt0T8bkGgFLqgqZBI/Uxbx5UAxLaNcCNLBpttM7wbCc1pmJOpWAsDtey68UaQMyrFgb9uxLPjqg3+nGluyKN0XUdWw0BJ0NvTFFqgzpr9J+Dh4w0Ga1qkqBNswagxdRgFPAbgHRQG5jumGWyMxrTIaRRa4AzFs0YrNMXgI4MJWnsKYFhGNMnIh/mBOPsV8CZBFjN9w8ArowxnZzDr5IcvxTaKpxJCVsoI3SWysz1UM4AqQdzlCgho1IKrK+x1mKFzisANtgEU8E7GwHDgOqxe4w9tnM166wbaA2xBMBLrTWcAGYGdCiYVUJUrMCF+7l6gklrW1RwPi8ByjuActANqhKzVWoYrFGcCFzbDgNaBrTWpncFQMcI2DfWoAiDqRCiHcYM/ZdCEKkZqfR8spj4F0CiJjv2gHL6URNoCQDaYacL6O1oFDO2eQDUFP7AKdCRdC4CRDZaNifbjA41l/uYb/SZMAFNTBGzY7sG4J2jTsJgToOzIzXF3HZqBpSOAGduXbkGEKV1OqVGqRJpRxtvwbSw5IqAiUJItwBCOT9R32FCGo3nCkAN3t0UTBRC6zDONcBeOee9pr4T+ASbnDOdc5OmtREwEEB5w8Wqgt4bOV5c7Lt9iiK8zdP/IsBbutUGX4gNwEVCqd3FUt/xYnRWt7BvPBYQjwjAGXa3ASguHVAZ/WXKlA3eZDX1wRegFsr7E2wAlB9xFbx/7MV70kFT8aqNgLL3F8nFBmA3hrn/IJHjKJOK2oj1WI4Z4FzwN/81AOhgYD6v2xbIvaZIurLC9AfvB1WLTYAoXejF1xeBL5cpBIyEbmxkZymIXwDQh1BAfOrhI1lfwtgz8tozF5T4ttf3+32AyxC6klwAgw/YVTHpoK82xYt3wLP/Bw4AAI4D7/01TLKXBj9NEz2wEuGiKpoy68S/FwCLMQAZ3gXhihaCa25vQo6RyToOz9PE6wYjJgGi1YnqZX8qMIK+TDlnargGzSv4NvFjlwXf/nfLLMrAB4O/Xl3BH0d+RIASFgDA8IYMIXgr2+cBsbDdPSwAAHjSZFmb3txETCKIxc0uWwI8rxsLJcTiVndNwyMgKljbbNN2/zcEAja2+4RgIDYN2Bu/WtAOaEodnu2dnzz/7I/Y/w/LaEcX/MdfAAAAAElFTkSuQmCC";
@@ -3155,7 +3232,7 @@ Minimum version required to store current data is: ` + bestVersion + `.
         let run = ++qrFlowRun.current;
         setBusy(!0), setError(void 0), setQrExpired(!1);
         try {
-          let session = await props.control("client.account.qr.start", { provider }), image = await import_qrcode.default.toDataURL(session.scanUrl, {
+          let session = await props.control("client.account.qr.start", { provider }), image = await import_qrcode2.default.toDataURL(session.scanUrl, {
             width: 184,
             margin: 1,
             errorCorrectionLevel: "L"

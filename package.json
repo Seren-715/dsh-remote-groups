@@ -1,6 +1,6 @@
 {
   "name": "dsh-remote-groups",
-  "version": "0.1.0-preview.4",
+  "version": "0.1.0-preview.5",
   "description": "DSH Remote Groups: one plugin for phone remote access and multi-agent group chats",
   "license": "Apache-2.0",
   "type": "module",

@@ -1,6 +1,6 @@
 # DSH Remote Groups
 
-[中文](README.md) · [Downloads](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.4) · [Illustrated guide (Chinese)](docs/USAGE.md) · [Installation](docs/INSTALL.md) · [Licensing](LICENSES.md)
+[中文](README.md) · [Downloads](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.5) · [Illustrated guide (Chinese)](docs/USAGE.md) · [Installation](docs/INSTALL.md) · [Licensing](LICENSES.md)
 
 **Bring DSH and multiple locally running Agents into one group, then use Android to continue conversations, assign tasks, transfer attachments and answer approvals.** The computer runs the Agents and stores group data; the phone is a remote interface.
 
@@ -38,12 +38,12 @@ The [illustrated guide](docs/USAGE.md) places screenshots next to the correspond
 
 Install DSH first. **Do not enable the full and companion distributions together.**
 
-The full distribution is now [published on npm](https://www.npmjs.com/package/dsh-remote-groups). Enter `dsh-remote-groups` directly in DSH’s Add plugin dialog. The default version is `0.1.0-preview.4`, still a preview. The companion remains a separate `.tgz` download.
+The full distribution is now [published on npm](https://www.npmjs.com/package/dsh-remote-groups). Enter `dsh-remote-groups` directly in DSH’s Add plugin dialog. The default version is `0.1.0-preview.5`, still a preview. The companion remains a separate `.tgz` download.
 
 | Existing installation | Download | Result |
 | --- | --- | --- |
-| Neither upstream plugin installed | [Full plugin archive](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-0.1.0-preview.4.tgz) | Includes enhanced Remote and Bot; no separate upstream installation needed. |
-| Remote, Bot or both already installed | [Companion archive](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-companion-0.1.0-preview.4.tgz) | Keeps installed upstream packages, suspends standard old entries, and supplies enhanced/missing components internally. |
+| Neither upstream plugin installed | [Full plugin archive](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.5/dsh-remote-groups-0.1.0-preview.5.tgz) | Includes enhanced Remote and Bot; no separate upstream installation needed. |
+| Remote, Bot or both already installed | [Companion archive](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.5/dsh-remote-groups-companion-0.1.0-preview.5.tgz) | Keeps installed upstream packages, suspends standard old entries, and supplies enhanced/missing components internally. |
 | Android, for either computer package | [Build61 APK](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-build61.apk) | Android 8.0+ / ARM64. Existing build61 installations need no update. |
 
 The companion also contains enhanced runtime code and is approximately the same size as the full package; it is not a thin bridge to arbitrary unmodified upstream versions. Existing full-package users can simply update the full package.
@@ -54,6 +54,8 @@ The companion also contains enhanced runtime code and is approximately the same 
 4. On Android, sign into the same connection service, trust/connect to the computer, and open Groups.
 
 Default Bot and Remote identity directories are reused. Custom `home`, service address and CLI settings must be reapplied to the new entries. Installation needs network access for ordinary dependencies. Keep the computer and Host running. See [installation/migration](docs/INSTALL.md) for ordering, upgrade and rollback boundaries.
+
+Android build61 mirrors: [Baidu Netdisk (code 0715)](https://pan.baidu.com/s/10SJoD5KiJfmoEqfi-LQm-Q?pwd=0715) and [Quark Drive (code V5NZ)](https://pan.quark.cn/s/ae9efa7ba473?pwd=V5NZ). Computer plugin preview.5 adds download buttons and locally generated QR codes to its settings, available before signing in. These are download codes, not Host authorization codes. [Download instructions](docs/INSTALL.md#手机端下载入口).
 
 ## Current limits
 

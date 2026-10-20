@@ -2,6 +2,18 @@
 export const localeNamespace = 'ds-harness-remote'
 
 export const en = {
+  mobileDownloadTitle: 'Get the Android app',
+  mobileDownloadHint: 'Scan with your phone or open a download link. After installation, sign in to the same connection service and connect to this computer.',
+  mobileDownloadBaidu: 'Baidu Netdisk',
+  mobileDownloadQuark: 'Quark Drive',
+  mobileDownloadOpen: 'Download from {source}',
+  mobileDownloadCode: 'Access code:',
+  mobileDownloadQrAlt: 'Scan to download the Android app from {source}',
+  mobileDownloadQrLoading: 'Preparing QR code…',
+  mobileDownloadQrFailed: 'QR code unavailable. Use the download link below.',
+  mobileDownloadVersion: 'build61 · Android 8.0+ · ARM64',
+  mobileDownloadGithub: 'GitHub direct download',
+  mobileDownloadGuide: 'Installation guide',
   terminalRemote: 'Remote terminal',
   terminalRemoteHint: 'Allow trusted Remote devices to run an interactive shell as this Host user. On by default; independent of Agent approvals. Toggling saves and applies immediately.',
   terminalRemoteUnavailable: 'Remote terminal is unavailable. Enable Remote terminal in the Host Remote settings; the switch applies immediately.',
@@ -275,6 +287,18 @@ export const en = {
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
+  mobileDownloadTitle: '下载手机端',
+  mobileDownloadHint: '用手机扫码或打开网盘下载。安装后登录同一连接服务，再连接这台电脑。',
+  mobileDownloadBaidu: '百度网盘',
+  mobileDownloadQuark: '夸克网盘',
+  mobileDownloadOpen: '打开{source}下载',
+  mobileDownloadCode: '提取码：',
+  mobileDownloadQrAlt: '扫码通过{source}下载 Android 手机端',
+  mobileDownloadQrLoading: '正在生成二维码…',
+  mobileDownloadQrFailed: '二维码暂不可用，请使用下方下载链接。',
+  mobileDownloadVersion: 'build61 · Android 8.0+ · ARM64',
+  mobileDownloadGithub: 'GitHub 直接下载',
+  mobileDownloadGuide: '安装说明',
   terminalRemote: '远程终端',
   terminalRemoteHint: '允许受信任的 Remote 设备以此 Host 用户身份运行交互式 Shell。默认开启，独立于 Agent 审批；切换后立即保存并生效。',
   terminalRemoteUnavailable: '远程终端不可用。请在 Host 的 Remote 设置中开启「远程终端」，开关会立即生效。',

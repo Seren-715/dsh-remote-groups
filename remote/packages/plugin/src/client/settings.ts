@@ -8,8 +8,10 @@ import {
   messageOf,
 } from './presentation.js'
 import type { ClientReact, PluginAssociation, PluginSettingsView, RemoteStatus } from './types.js'
+import { createMobileDownloads } from './mobile-downloads.js'
 
 export function createRemotePluginOptions(React: ClientReact) {
+  const MobileDownloads = createMobileDownloads(React)
   function RemotePluginOptions(props: {
     control: <T>(endpoint: string, payload?: unknown) => Promise<T>
     statusFeed: StatusFeed<RemoteStatus>
@@ -318,6 +320,7 @@ export function createRemotePluginOptions(React: ClientReact) {
             }, hostStatus === undefined ? t('associated') : connectionStatusLabel(hostStatus, t)),
           React.createElement('span', { className: 'dshRemotePluginCardChevron', 'aria-hidden': true }, '⌄'))),
       !open ? null : React.createElement('div', { className: 'dshRemotePluginCardBody' },
+        React.createElement(MobileDownloads, { t }),
         !loaded
           ? React.createElement('p', { className: 'dshRemoteSettingsState' }, error ?? t('loadingSettings'))
           : association !== undefined

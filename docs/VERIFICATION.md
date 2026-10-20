@@ -1,5 +1,13 @@
 # Preview verification
 
+## Mobile downloads preview.5
+
+- Both distributions expose a download section at the start of Remote settings, before loading/account state. Baidu is on the left, Quark on the right, with access codes and external links; GitHub remains a direct-download fallback. QR generation is local using the existing qrcode dependency. Summary rows remain plain text; no Android/Host business behavior changed.
+- Remote TypeScript checking and the 14 client-runtime tests passed. Official patch-composition checks for no/one/both upstreams and the documented override boundaries passed again. An isolated official DSH CLI installed the full archive with scripts disabled; the actual Web plugin details displayed downloads before Remote sign-in.
+- Playwright checked light/dark presentation, external-link attributes and a 480-pixel viewport with stacked cards and no card overflow. OpenCV independently decoded both actual rendered QR images and both documentation QR files to exactly the maintainer-provided build61 share URLs, including their access codes.
+- Cloud-hosted APK contents have not been independently downloaded and hashed; the maintainer replaced the initial build60 shares after the old local filename was identified. The GitHub build61 APK is unchanged and retains its previously verified checksum. These checks verify the supplied links/QR payloads, not cloud-service availability or phone installation.
+- The broader pre-existing Remote-suite failures and physical-phone/live-Agent limitations below remain. No paid model prompt or personal DSH profile was used.
+
 ## Full and companion distributions preview.4
 
 - Both archives contain the same enhanced Remote/Bot runtimes. The companion retains installed upstream dependencies and uses official bundle patches with id/name assertions to suspend standard upstream entries, then inserts distinct enhanced entry IDs. It supplies missing components internally, without a separate upstream install or install-time script.

@@ -1,8 +1,8 @@
 # DSH Remote Groups 图文使用指南
 
-[返回首页](../README.md) · [下载安装包](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.4) · [安装与迁移](INSTALL.md)
+[返回首页](../README.md) · [下载安装包](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.5) · [安装与迁移](INSTALL.md)
 
-本指南对应电脑插件 preview.4 与 Android build61。下面图片使用当前 Android 组件在浏览器中渲染，所有消息与任务为虚构示例，不代表真实 Agent 调用或真机效果。界面字体、键盘、文件选择器以实际手机为准。
+本指南对应电脑插件 preview.5 与 Android build61。下面图片使用当前 Android 组件在浏览器中渲染，所有消息与任务为虚构示例，不代表真实 Agent 调用或真机效果。界面字体、键盘、文件选择器以实际手机为准。
 
 ## 连接电脑与创建群聊
 

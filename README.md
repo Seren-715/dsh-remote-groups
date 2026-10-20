@@ -1,6 +1,6 @@
 # DSH Remote Groups
 
-[English](README.en.md) · [下载安装包](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.4) · [图文使用指南](docs/USAGE.md) · [安装与迁移](docs/INSTALL.md) · [许可与来源](LICENSES.md)
+[English](README.en.md) · [下载安装包](https://github.com/Seren-715/dsh-remote-groups/releases/tag/v0.1.0-preview.5) · [图文使用指南](docs/USAGE.md) · [安装与迁移](docs/INSTALL.md) · [许可与来源](LICENSES.md)
 
 **把电脑上的 DSH 和多个 Agent 放进同一个群聊，用 Android 手机继续聊天、分配任务、传文件和处理审批。** 电脑负责运行 Agent，手机是操作入口；成员、群聊和消息保存在电脑端。
 
@@ -38,12 +38,12 @@
 
 先安装 DSH，再按电脑上的现状选择。**两种电脑包不能同时启用。**
 
-**完整版已发布到 npm**：在 DSH → 添加插件中直接填写 `dsh-remote-groups` 即可安装。当前默认版本为 `0.1.0-preview.4`，仍是预览版；[npm 包页面](https://www.npmjs.com/package/dsh-remote-groups)。配套版继续使用下方独立 `.tgz`。
+**完整版已发布到 npm**：在 DSH → 添加插件中直接填写 `dsh-remote-groups` 即可安装。当前默认版本为 `0.1.0-preview.5`，仍是预览版；[npm 包页面](https://www.npmjs.com/package/dsh-remote-groups)。配套版继续使用下方独立 `.tgz`。
 
 | 你的情况 | 电脑端下载 | 安装结果 |
 | --- | --- | --- |
-| 没有安装过两个上游插件 | [完整版 .tgz](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-0.1.0-preview.4.tgz) | 一包包含 Remote 连接与增强群聊，无需另装上游 |
-| 已装 Remote、Bot 或两者 | [配套版 .tgz](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-companion-0.1.0-preview.4.tgz) | 保留原包安装，停用标准旧入口；增强组件及缺失组件由本包提供 |
+| 没有安装过两个上游插件 | [完整版 .tgz](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.5/dsh-remote-groups-0.1.0-preview.5.tgz) | 一包包含 Remote 连接与增强群聊，无需另装上游 |
+| 已装 Remote、Bot 或两者 | [配套版 .tgz](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.5/dsh-remote-groups-companion-0.1.0-preview.5.tgz) | 保留原包安装，停用标准旧入口；增强组件及缺失组件由本包提供 |
 | 手机端，两种方案相同 | [Android build61 APK](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-build61.apk) | Android 8.0+、ARM64；已装 build61 无需重装 |
 
 配套版也携带增强运行组件，功能、体积与完整版接近。它不是只依靠任意原版上游工作的轻量桥接。已在用本项目完整版的人直接更新完整版即可。
@@ -54,6 +54,8 @@
 4. 手机安装 APK，登录同一连接服务、信任并连接电脑，然后进入“群聊”。
 
 默认 Bot 数据与 Remote 身份目录沿用；自定义 `home`、服务地址和 CLI 配置需在新入口重新应用。安装器需要联网下载普通依赖，电脑与 Host 需要保持运行。完整步骤、升级/回退及加载顺序见 [安装说明](docs/INSTALL.md)。
+
+手机 APK 也可从 [百度网盘（提取码 0715）](https://pan.baidu.com/s/10SJoD5KiJfmoEqfi-LQm-Q?pwd=0715) 或 [夸克网盘（提取码 V5NZ）](https://pan.quark.cn/s/ae9efa7ba473?pwd=V5NZ) 下载。电脑插件从 preview.5 起内置对应按钮与二维码，[查看下载说明](docs/INSTALL.md#手机端下载入口)。
 
 ## 使用前需要知道
 
