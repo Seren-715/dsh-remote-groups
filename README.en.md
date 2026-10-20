@@ -14,4 +14,4 @@ Install the ARM64 Android 8+ APK and matching DS Bot package from [Releases](htt
 - `host/`: Apache-2.0 DS Bot project with original notices and file-level modification notices.
 - [Build](docs/BUILD.md), [provenance](docs/UPSTREAM.md), [verification and limits](docs/VERIFICATION.md).
 
-This is a preview. Build 60 passed native Android emulator send/layout checks in light/dark themes and at 130% font scale. Physical-device networking, vendor fonts/pickers and live agents require environment-specific testing. No account data, credentials or signing private keys are included.
+This is a preview. Build 61 passed native Android emulator send/layout checks in light/dark themes and at 130% font scale. Physical-device networking, vendor fonts/pickers and live agents require environment-specific testing. No account data, credentials or signing private keys are included.

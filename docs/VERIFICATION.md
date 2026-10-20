@@ -2,6 +2,8 @@
 
 ## Android build 61 and Host .20261020.2
 
+Public APK: `dsh-remote-groups-build61.apk`, 53,732,565 bytes, SHA256 `84e4459574ce1d82fe976587bcd812d5de8663140a2ebff7846976eef72836c7`. VersionCode61 / ARM64 / API26+. Release completed in 7m38s. APK v2/v3 signatures match the existing Groups certificate, 16KiB alignment passed, and the packaged JS equals the generated final bundle. All 1,075 non-signature runtime entries remain byte-for-byte unchanged after adding embedded notices; draft code is present and isolated fixture markers are absent.
+
 - 33 Android test files / 168 tests and TypeScript passed; targeted mention/draft/display tests passed again after the final cursor changes.
 - Native Android API35/Hermes at 360×800 dp verified the fixed approval panel and details/allow action, cursor-local @ candidates, completion without caret lock, avatar long press, private-file draft recovery after screen and process restart, and OCR-free display text. Dark/light rendering and font scale 1.3 were checked.
 - First room entry locates the latest history. Later new messages preserve the exact bounds of historical rows; new approvals preserve history position while their fixed panel takes space below the title. Only the explicit latest-message button performs a later jump.
