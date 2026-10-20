@@ -1,0 +1,239 @@
+const zhCN = {
+  tools: {
+    "files": "文件",
+    "terminal": "终端",
+    "root": "工作区",
+    "empty": "此文件夹为空",
+    "truncated": "目录项过多，仅显示 Host 返回的部分内容。",
+    "previous": "上一页",
+    "next": "下一页",
+    "readOnly": "只读预览",
+    "retry": "重试",
+    "refresh": "刷新",
+    "unsupported": "此 Host 尚不支持此功能，请更新 DSH 和 Remote 插件后重连。",
+    "terminalDisabled": "请在电脑的 Remote 设置中开启「远程终端」，然后重试。",
+    "controlDenied": "当前终端输入权已被其他连接接管，请重新打开终端。",
+    "notText": "此文件不是 UTF-8 文本，暂不支持预览。",
+    "tooLarge": "文件或页面超过 Host 读取限制。",
+    previewUnsupported: '暂不支持此文件类型的预览。不会将未知二进制文件作为文本打开。',
+    previewTooLarge: '超过手机预览限制：8 MiB、图片边长 8192 像素及 1600 万像素；Office 源文件最多 50 MiB。',
+    accessDenied: 'Host 拒绝了此会话的访问，请检查电脑端的授权。',
+    previewChanged: '文件在读取期间发生变化，请刷新后重试。',
+    previewInvalid: 'Host 返回的文件数据无效，已停止预览。',
+    previewFailed: '无法显示此文件，请重试。',
+    previewLoading: '正在读取文件…',
+    officeLoading: '正在电脑端转换为 PDF…',
+    officeUnavailable: '电脑端文档转换不可用，请确认已安装并启用 Office → PDF 支持。',
+    officeFailed: '文档转换失败，可能是不支持或损坏的文档。',
+    officeBusy: '电脑端文档转换繁忙或超时，请稍后重试。',
+    missingFonts: (fonts: string) => `电脑端缺少字体，排版可能不同：${fonts}`,
+    pdfPage: (page: number, total: number) => `第 ${page} / ${total} 页`,
+    pdfLoading: '正在渲染 PDF…',
+    pdfPassword: '暂不支持加密或需要密码的 PDF。',
+    zoomIn: '放大',
+    zoomOut: '缩小',
+    "failed": "操作未完成，请检查连接后重试。",
+    "newTerminal": "新建终端",
+    "closeTerminal": "结束终端",
+    "connecting": "正在连接终端…",
+    "creating": "正在新建终端…",
+    "exited": "终端已结束",
+    "disconnected": "终端连接已断开；输入不会自动重发。",
+    "permissionUnavailable": "无法读取权限选项，请更新 Host Remote 插件后重试。",
+    "enter": "回车",
+    "keyboard": "键盘",
+    "interrupt": "中断",
+    "tab": "Tab",
+    "escape": "Esc",
+    "up": "上",
+    "down": "下",
+    "left": "左",
+    "right": "右",
+    "backspace": "退格"
+},
+  common: {
+    back: '返回', retry: '重试', close: '关闭', cancel: '取消', refresh: '刷新', delete: '删除', unavailable: '不可用', unknown: '未知',
+  },
+  app: {
+    credit: 'Power By Github/liguobao',
+    oauthCancelled: '未完成授权，请再试一次。', oauthInvalid: '登录信息已失效，请重新登录。',
+    loadingTagline: '随时随地开始你的工作。', loadingIdentity: '正在准备安全身份…', bootFailed: 'DSH Remote 无法启动', secureStorageUnavailable: '暂时无法读取此手机的安全数据，请重试。',
+    deviceUnavailable: '找不到这台设备', deviceNoLongerTrusted: '它可能已被移除或退出当前账号。', backToDevices: '返回设备列表',
+  },
+  status: { online: '在线', offline: '离线', disconnected: '未连接', lan: '局域网直连', relay: '服务器转发', p2p: 'P2P 直连', turn: 'TURN 转发', waiting: '连接中', running: '运行中' },
+  setup: {
+    title: '登录', signIn: '登录账号', signInAgain: '重新登录', lead: '授权此手机后，即可查看同一账号下的设备并继续对话。',
+    oauth: '知乎', githubOAuth: 'GitHub', passwordMethod: '邮箱', zhihu: '使用知乎账号登录', github: '使用 GitHub 账号登录', oauthHint: '会打开浏览器完成授权，然后自动返回这里。',
+    qr: '扫码登录', qrEntryHint: '点击显示二维码，用手机扫码授权', qrScanTitle: '使用手机扫码登录', qrScanHint: '用手机扫描二维码并在授权页确认，完成后会自动登录此设备。', qrWaiting: '等待手机扫码…', qrExpired: '二维码已过期，请刷新后重试。', qrRefresh: '刷新二维码', qrUnsupported: '当前服务器未开启扫码登录，请使用其他方式登录。', qrFailed: '扫码登录未完成，请重试。',
+    email: '邮箱', emailPlaceholder: '输入邮箱', password: '密码', passwordPlaceholder: '输入密码', passwordHint: '密码只用于本次登录，不会保存在手机上。',
+    server: '服务地址', serverHint: '请使用 HTTPS 地址。', trustTitle: '保护你的设备和对话', trustBody: '对话内容会加密传输。只有登录同一账号的可信设备才能访问。',
+  },
+  settings: {
+    title: '设置', thisPhone: '此手机', androidDevice: 'Android 设备', connection: '连接', server: '服务器', account: '账号', loginMethod: '登录方式', protocol: '协议', notConfigured: '未配置', notSignedIn: '未登录',
+    language: '语言', languageSystem: '跟随系统', languageChinese: '简体中文', languageEnglish: 'English', languageNote: '选择“跟随系统”后，App 会随 Android 的语言设置自动切换。',
+    theme: '深色模式', themeLight: '浅色', themeDark: '深色', themeSystem: '跟随系统',
+    chat: '对话',
+    defaultPermission: '新对话默认权限', defaultPermissionHost: '使用默认权限', defaultPermissionHostDescription: 'DeepSeek Harness 沿用电脑端设置；CodeX 使用工作区内修改。', defaultPermissionNote: '自动应用于此手机新建的 DeepSeek Harness 和 CodeX 对话；已有对话不变。Cursor 和 AGY 不适用。',
+    defaultPermissionFullAccessTitle: '新对话默认开启完全权限？', defaultPermissionFullAccessBody: '此后在手机上新建的 DeepSeek Harness 和 CodeX 对话都可直接修改文件和运行命令，不再逐次确认。你仍可在单个对话中更改权限。', defaultPermissionSaveFailed: '无法保存默认权限', defaultPermissionSaveFailedBody: '本地存储写入失败，请重试。', defaultPermissionNotConfirmed: '电脑端未确认新对话的默认权限，请重新连接后重试。',
+    transport: '连接方式', transportNote: '更改后会重新连接。直接连接失败时，将自动改用服务器转发。', identity: '此手机的身份', deviceId: '设备 ID', publicKey: '安全密钥', keyNote: '安全密钥由 Android 系统加密保存，不会离开此手机。',
+    about: '关于', aboutLead: '查看当前版本、开源与更新信息', developer: '开发者', developerValue: '知乎@李国宝', appVersion: '当前版本', sourceCodeUrl: '开源地址', updateUrl: '更新地址', linkFailedTitle: '无法打开链接', linkFailedBody: '请检查网络或复制地址后在浏览器中打开。',
+    more: '更多', checkUpdates: '检查更新', checkingUpdates: '正在检查更新…', updateFoundTitle: '发现新版本', updateFoundBody: (latest: string, current: string) => `发现新版本 v${latest}，当前版本 ${current}。`, downloadUpdate: '下载更新', openUpdates: '打开更新', downloadingUpdate: '正在下载更新', downloadFailedTitle: '下载失败', downloadFailedBody: '无法下载最新安装包，请检查网络后重试。', installFailedTitle: '无法打开安装程序', installFailedBody: '安装包已下载，但无法打开安装程序。请先允许此应用安装未知应用，再重试。', openInstallSettings: '去设置开启', upToDateTitle: '已是最新版本', upToDateBody: '当前已是最新版本。', checkFailedTitle: '检查更新失败', checkFailedBody: '请检查网络后重试。',
+    signOut: '退出登录', resetLocal: '清除本地数据', resetTitle: '清除此手机上的数据？', resetBody: '将删除服务设置、登录信息和已信任的设备。之后需要重新登录，此操作无法撤销。', reset: '清除数据', signOutTitle: '退出当前账号？', signOutBody: '退出后，需要重新登录才能访问设备。',
+  },
+  devices: {
+    rename: '重命名', renameTitle: '修改设备名称', namePlaceholder: '输入设备名称', saveName: '保存', renameHint: '新名称会同步到账号下的设备列表。',
+    title: '设备', myDevices: '我的设备', lead: '选择一台设备，继续你的工作', footer: '随时继续你的工作。', favorites: '收藏夹', recent: '最近访问', openFavorite: (title: string, device: string) => `打开收藏夹中 ${device} 上的“${title}”`, openRecent: (title: string, device: string) => `打开最近访问的“${title}”（${device}）`, removeFavorite: (title: string) => `从收藏夹移除“${title}”`, emptyTitle: '还没有可用设备', emptyBody: '在电脑上安装 DSH Remote 插件并登录同一账号，设备就会出现在这里。', options: '管理设备', encrypted: '安全连接',
+    connectionInterrupted: '连接已断开', trustExplanation: '确认后，此手机会记住这台设备的安全身份。如果身份发生变化，将停止连接以保护你的数据。', trust: '信任并继续', connectReady: '连接后即可查看并继续电脑上的对话。', offlineHelp: '这台设备已离线。请确认电脑上的 DSH Remote 插件正在运行。', secureConnect: '连接设备',
+    connectingTitle: '连接设备', connecting: '正在连接', connectionReady: '已就绪', retryConnection: '重新连接', cancelConnection: '取消连接', openInfo: '查看设备和连接信息',
+    connectionProbeLabels: {
+      lan: '探测局域网直连',
+      p2p: '探测点对点直连',
+      turn: '探测 TURN 中继',
+      relay: '准备服务器转发',
+    },
+    connectionProbeDetails: {
+      lan: 'LAN',
+      p2p: 'P2P',
+      turn: 'TURN',
+      relay: 'Relay',
+    },
+    connectionSteps: {
+      authenticating: { title: '验证设备', body: '确认账号与设备访问权限' },
+      transport: { title: '选择连接路径', body: '尝试局域网、P2P 或服务器转发' },
+      secure: { title: '建立安全通道', body: '核对设备身份并完成加密握手' },
+      loading: { title: '读取工作区', body: '同步工作区和对话列表' },
+    },
+    info: '设备信息', harness: 'DeepSeek Harness', harnessShort: 'DSH', pluginShort: 'Plugin', plugin: 'Remote 插件', provider: '模型服务', directory: '当前目录', model: '当前模型', workspaces: '工作区', conversations: '对话', secureConnection: '连接信息', path: '连接方式', probeOrder: '探测顺序', encryption: '安全保护', viewWorkspaces: '查看工作区和对话', unknownVersion: '版本信息不可用',
+    networkDetails: '网络详情', phoneEndpoint: '手机端点', computerEndpoint: '电脑端点', relayEndpointUnavailable: '服务器转发未公开', connectionServer: '连接服务器', networkProtocol: '网络协议', candidatePath: '候选路径', roundTripTime: '往返延迟', availableBitrate: '可用上行带宽', traffic: '本次流量', connectedAt: '连接时间', sent: '发送', received: '接收',
+    forgetTitle: (name: string) => `解除“${name}”的绑定？`, forgetBody: '这会从账号中移除这台设备并断开远程连接。再次使用前，需要在电脑端重新绑定。', forget: '解除绑定',
+  },
+  sessionInfo: { title: '对话信息', workspaceInfo: '工作区信息', host: '主机', workspaceDirectory: '工作区目录', sessionDirectory: '对话目录' },
+  sessions: { archive: '归档对话', archiveTitle: '归档这段对话？', archiveBody: '归档后，这段对话会从工作区列表中隐藏。', untitled: '新对话', child: '子任务对话' },
+  time: { unavailable: '更新时间不可用', lastSeenUnavailable: '活跃时间不可用', lastActive: (value: string) => `${value}活跃`, now: '刚刚', justNow: '刚刚更新', minutesAgo: (n: number) => `${n} 分钟前`, hoursAgo: (n: number) => `${n} 小时前`, updatedSuffix: '更新', locale: 'zh-CN' },
+  transport: { auto: '自动（推荐）', autoDescription: '优先尝试 P2P 直连，必要时自动改用 TURN 或服务器转发', turn: 'TURN 优先', turnDescription: '网络受限时，优先使用 TURN 转发以提高稳定性', relay: '仅服务器转发', relayDescription: '所有数据都通过 DSH Remote 服务器转发' },
+  workspaces: {
+    title: '工作区', create: '新建工作区', type: '工作区类型', dsh: 'DSH', deviceTitle: (name: string) => name, deviceInfo: '设备与连接信息',
+    deviceSubtitle: (name: string, status: string) => `${name} · ${status}`, noDevice: '未连接设备',
+    emptyTitle: '还没有工作区', emptyBody: '选择电脑上的项目目录，将相关对话整理在一起。', search: '搜索工作区', clearSearch: '清除搜索', noSearchResults: '没有找到工作区', noSearchResultsBody: '试试搜索其他名称或目录路径。', options: '管理工作区', addFavorite: (title: string) => `将“${title}”加入收藏夹`, removeFavorite: (title: string) => `将“${title}”移出收藏夹`, favoriteUnavailable: '收藏夹中的这个工作区已不在电脑上，可能已被删除。', noSessions: '还没有对话，点击新建', loadAllSessions: '加载全部', showMoreSessions: '显示更多', unnamedSession: '未命名对话', codex: 'CodeX', cursor: 'Cursor', pi: 'Pi', antigravity: 'Antigravity', opencode: 'OpenCode', claude: 'Claude',
+    deleteTitle: (title: string) => `删除“${title}”？`, deleteBody: '将从这台设备上删除该工作区及其中的所有对话。此操作无法撤销。', delete: '删除工作区', rename: '重命名', moveUp: '上移', moveDown: '下移', expandWorkspace: (title: string) => `展开工作区“${title}”`, collapseWorkspace: (title: string) => `折叠工作区“${title}”`, newSessionIn: (title: string) => `在“${title}”中新建对话`, deviceDirectory: '电脑上的项目目录', browse: '选择目录', directoryHint: '在这里新建的对话会使用该目录。', codexDirectoryHint: '所选目录会添加到电脑端 CodeX 项目目录。', cursorDirectoryHint: '所选目录会作为 Cursor ACP 会话的工作目录（仅保存在本机连接期间）。', piDirectoryHint: '所选目录会作为 Pi ACP 会话的工作目录（仅保存在本机连接期间）。', antigravityDirectoryHint: '使用所选目录进行 AGY 对话，已有对话从电脑端加载。', opencodeDirectoryHint: '使用所选目录进行 OpenCode 对话，已有对话从电脑端加载。', claudeDirectoryHint: '使用所选目录进行 Claude 对话，已有对话从电脑端加载。', renameTitle: '重命名工作区', namePlaceholder: '输入工作区名称', saveName: '保存', chooseFolder: '选择项目目录', loading: '正在加载…', loadingDirectory: '正在读取目录…', noFolders: '这里没有可选的文件夹', showHidden: '显示隐藏文件夹', hideHidden: '隐藏隐藏文件夹', chooseThisFolder: '使用此目录',
+  },
+  chat: {
+    currentWorkSessions: '当前工作', noCurrentWorkSessions: '本次远程尚未使用对话',
+    otherHostSessions: '其他对话',
+    hostSessions: '主机对话', openHostSessions: '打开当前主机的对话列表', noHostSessions: '当前主机暂无对话',
+    quickCheckChanges: '检查改动', quickCheckChangesPrompt: '检查当前代码改动并指出问题。', quickCommit: '提交代码', quickCommitPrompt: '检查当前改动并直接提交代码，不要再询问确认。', quickViewScreenshot: '查看截图', quickViewScreenshotPrompt: '查看最新截图并检查界面问题。',
+    fullAccessTitle: '开启完全访问权限？', fullAccessBody: '开启后，DeepSeek Harness 可以直接修改文件和运行命令。只建议在你信任当前任务时使用。', codexFullAccessTitle: '允许 CodeX 完全访问电脑？', codexFullAccessBody: '开启后，CodeX 可访问电脑上的全部文件，并在后续回合中不再逐次请求命令或文件修改确认。只建议在你完全信任当前任务时使用。', enable: '开启完全访问', stop: '停止回复', selectModel: '选择模型', selectReasoningEffort: '选择思考程度', reasoningEffortLabel: (name: string) => `思考程度：${name}`, approvalMode: '操作权限', approvalModeLabel: (name: string) => `操作权限：${name}`, reconnect: '重新连接当前对话', reconnecting: '正在恢复当前对话…', offline: '与设备的连接已断开，点击右上角重新连接并继续当前对话。', hostOperation: (name: string) => `${name}（电脑端）`,
+    toolRunning: (name: string) => `正在${name}`, processRunning: '正在分析请求', older: '查看更早的消息', messageLabel: '给 DeepSeek Harness 发消息', codexMessageLabel: '给 CodeX 发消息', cursorMessageLabel: '给 Cursor 发消息', piMessageLabel: '给 Pi 发消息', antigravityMessageLabel: '给 Antigravity 发消息', opencodeMessageLabel: '给 OpenCode 发消息', claudeMessageLabel: '给 Claude 发消息', placeholder: '输入消息…', codexPlaceholder: '给 CodeX 安排任务…', cursorPlaceholder: '给 Cursor 安排任务…', piPlaceholder: '给 Pi 安排任务…', antigravityPlaceholder: '给 Antigravity 安排任务…', opencodePlaceholder: '给 OpenCode 安排任务…', claudePlaceholder: '给 Claude 安排任务…', send: '发送', draftLong: (count: number) => `已输入 ${count.toLocaleString()} 字符`, draftTooLongTitle: '消息过长', draftTooLong: (max: number) => `消息最多 ${max.toLocaleString()} 字符，请精简后再发送`, queueTitle: (count: number) => `排队中 ${count} 条消息`, queuePending: '等待执行', queueSteer: '立即发送', subagentsTitle: (count: number) => `子任务 · ${count}`, teamTitle: (count: number) => `智能体团队 · ${count}`, teamTaskPending: '待办', teamTaskInProgress: '进行中', teamTaskCompleted: '已完成', teamPhaseProvisioning: '准备中', teamPhaseFailed: '失败', teamMoreTasks: (count: number) => `另有 ${count - 1} 个任务`, teamIdle: '空闲', teamLead: '负责人', queueRemove: '移出队列', resendImageMissing: '图片需重新添加后再发送', sendFailed: '发送失败', sendUnconfirmed: '发送结果未确认', sendCanceled: '已取消', resendConfirm: '这条消息的发送结果未确认。再次发送可能被执行两次，确定重试吗？', resend: '重新发送', questionCustomPlaceholder: '补充你的回答…', addImages: '添加图片', removeImage: (name: string) => `移除图片“${name}”`, unnamedImage: '图片', imageLimitTitle: '无法添加图片', tooManyImages: (max: number) => `每条消息最多添加 ${max} 张图片。`, unsupportedImage: (name: string) => `“${name}”的格式不受支持，请选择 PNG、JPEG、WebP 或 GIF 图片。`, imageTooLarge: (name: string, max: string) => `“${name}”超过单张图片 ${max} 的限制。`, imagesTooLarge: (max: string) => `这些图片合计超过 ${max} 的限制。`, imageDimensionsTooLarge: (name: string, max: number) => `“${name}”的宽或高超过 ${max} 像素。`, imagePixelsTooLarge: (name: string) => `“${name}”的像素数量超过限制。`, imagePickerFailedTitle: '无法读取图片', imagePickerFailedBody: '请选择 PNG、JPEG、WebP 或 GIF 图片后重试。', policyHint: '对话全程加密，远程操作受 DeepSeek Harness 权限控制。', codexPolicyHint: '对话全程加密，远程操作受 CodeX 权限控制。', cursorPolicyHint: '对话全程加密，远程操作受 Cursor ACP 权限控制；当前仅支持文本消息。', piPolicyHint: '对话全程加密，远程操作受 Pi ACP 权限控制；当前仅支持文本消息。', antigravityPolicyHint: '消息全程加密。图片存入电脑端私有临时缓存，由 AGY 图片工具读取。', opencodePolicyHint: '消息全程加密，远程操作受 OpenCode ACP 权限控制。', claudePolicyHint: '消息全程加密，远程操作受 Claude ACP 权限控制。', you: '你', system: '系统', generating: '深度求索中', codexGenerating: '正在思考', cursorGenerating: '正在思考', piGenerating: '正在思考', antigravityGenerating: '正在思考', opencodeGenerating: '正在思考', claudeGenerating: '正在思考', stopping: '正在停止', reasoning: '思考', reasoningActive: '思考中', reasoningExpand: '展开思考过程', reasoningCollapse: '收起思考过程', failed: '未完成', completed: '已完成', toolCall: '调用内容', toolResult: '执行结果', toolExpand: (name: string) => `查看“${name}”详情`, toolCollapse: (name: string) => `收起“${name}”详情`, toolTruncated: '内容过长，仅显示前 64 KB。', denied: '已拒绝', allowedOnce: '已允许本次操作', approvalHandled: '已在其他设备处理', permissionTitle: '是否允许这次操作？', permissionScope: '允许后仅对当前请求生效，其他操作仍需要你确认。', allowOnce: '允许这一次', deny: '不允许', answered: '已回答', questionCancelled: '问题已取消', questionQueued: '回答已排队，等待 Agent 接收', questionContinued: 'Agent 已继续执行，你仍可补充回答', questionRemaining: (seconds: number) => `剩余 ${seconds} 秒`, questionTitle: 'DeepSeek Harness 需要你确认', answerToContinue: '回答后将继续执行', submitAnswer: '提交回答', welcomeSlogan: '探索未至之境', moreActions: '更多操作', openWorkspaces: '工作区', welcomeBadge: '预览版', takePhoto: '拍照', photos: '相册', files: '文件', mode: '模式', selectMode: '选择模式', modeDefault: '默认', reasoningEffort: '推理强度', reasoningEffortDefault: '默认', toolAccess: '工具访问', quickPrompts: '快捷提示词', toolPrompts: '提示词', toolFilesDescription: '查看电脑上的文件和目录', toolTerminalDescription: '在电脑上运行命令', toolPromptsDescription: '常用提示词，点一下直接发送', toolPromptEdit: '编辑提示词', toolPromptEditDescription: '增加、删除或修改常用提示词', toolPromptAdd: '新建提示词', toolPromptEditTitle: (title: string) => `编辑“${title}”`, toolPromptTitlePlaceholder: '提示词名称', toolPromptTextPlaceholder: '提示词内容', toolPromptSave: '保存', toolPromptSaveFailedTitle: '无法保存提示词', toolPromptSaveFailedBody: '本地存储写入失败，请重试。', toolPromptDeleteTitle: (title: string) => `删除“${title}”？`, toolPromptDeleteBody: '删除后不能恢复。', toolPromptEmptyTitle: '没有提示词', toolPromptEmptyBody: '点击「编辑提示词」增加常用提示词。', toolPromptSent: (title: string) => `已发送“${title}”`, toolPromptSendFailed: '发送失败，请检查连接后重试。', newChat: '新对话', newChatFailedTitle: '无法新建对话', newChatFailedBody: '请检查连接后重试。', selectWorkspace: '选择工作区', moveSessionHint: '把当前对话移到所选工作区', workspaceNone: '未分组', workspacePickerEmptyTitle: '还没有可用的工作区', workspacePickerEmptyBody: '在电脑端 DeepSeek Harness 中添加项目目录后，就可以把对话移进工作区。', manageWorkspaces: '管理工作区', moveStartedTitle: '这段对话不能直接移动', moveStartedBody: (name: string) => `这段对话已经在其他目录开始，工作目录不能更改。要在“${name}”中新建对话继续吗？`, moveStartedConfirm: '在该工作区新建对话', moveFailedTitle: '无法在该工作区新建对话', moveFailedBody: '请检查连接后重试。', modeLockedTitle: '无法切换模式', modeLockedBody: '这段对话已经开始，模式只能在开始之前更改。请新建对话后再选择。', modeSelectFailedBody: '模式切换没有成功，请检查连接后重试。', modeLoadFailed: '模式列表加载失败，请重新打开「更多操作」重试。', cameraPermissionTitle: '无法使用相机', cameraPermissionBody: '请在系统设置中允许 DSH Remote 使用相机。', filePickerFailedTitle: '无法读取文件', filePickerFailedBody: '请选择 PNG、JPEG、WebP 或 GIF 图片后重试。', permissionReadOnly: '仅可查看', permissionReadOnlyDescription: '只能读取；修改文件和运行命令都需要你逐次确认。', permissionWorkspaceWrite: '工作区内修改', permissionWorkspaceWriteDescription: '可在当前工作区内写入文件和运行命令；更广泛的访问仍需确认。', permissionFullAccess: '完全权限', permissionFullAccessDescription: '不再逐次确认，可直接修改文件和运行命令。只建议在你信任当前任务时使用。', presetStandardName: '标准模式', presetStandardDescription: '处理代码、文件和资料，适合大多数任务。Agent 会按需使用检索、编辑和终端等工具。', presetPtcName: 'PTC 模式', presetPtcDescription: '包含标准模式的所有能力，更适合批量调用工具，并对结果进行筛选、整理、去重、统计或汇总的任务。', presetMinimalName: '极简模式', presetMinimalDescription: 'Agent 仅使用终端工具完成任务，适合测试和对比其基础表现。', presetCordisName: '创造模式', presetCordisDescription: '用对话定制 DSH：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。', welcomeTitle: '继续这段对话', welcomeBody: '告诉 DeepSeek Harness 你想检查、解释或修改什么，也可以添加图片。如果需要你确认操作，会直接显示在对话中。', codexWelcomeTitle: '继续 CodeX 对话', codexWelcomeBody: '告诉 CodeX 你想检查、解释或修改什么，也可以添加图片。命令或文件修改需要确认时，会直接显示在对话中。', cursorWelcomeTitle: '继续 Cursor 对话', cursorWelcomeBody: '告诉 Cursor 你想检查、解释或修改什么。权限请求会直接显示在对话中；当前远程仅支持文本 Prompt。', antigravityWelcomeTitle: '继续 Antigravity 对话', antigravityWelcomeBody: '告诉 AGY 你想检查、解释或修改什么，也可以添加图片。', opencodeWelcomeTitle: '继续 OpenCode 对话', claudeWelcomeTitle: '继续 Claude 对话', opencodeWelcomeBody: '告诉 OpenCode 你想检查、解释或修改什么。', claudeWelcomeBody: '告诉 Claude 你想检查、解释或修改什么。',
+    codexWorkspaceWrite: '工作区写入', codexWorkspaceWriteDescription: '可写入当前项目；更广泛的命令和文件访问仍需单次确认。', codexFullAccess: '完全访问', codexFullAccessDescription: '允许 CodeX 访问电脑上的全部文件，后续操作不再逐次确认。', codexCommand: 'CodeX 命令', codexFileChange: 'CodeX 文件修改', codexWebSearch: 'CodeX 网页搜索', codexSubagent: 'CodeX 子 Agent', codexPlan: 'CodeX 计划', codexOperation: 'CodeX 操作', codexError: 'CodeX 执行失败。',
+  },
+  mention: {
+    addSection: '添加', commandSection: '指令', skillSection: '技能', sessionSection: '对话', fileSection: '文件',
+    file: '文件 file', fileDescription: '在消息中引用电脑上的文件',
+    goal: '目标 goal', goalDescription: '设置或查看长期任务目标',
+    plan: '计划 plan', planDescription: '进入或退出计划模式',
+    feedback: '反馈 feedback', feedbackDescription: '发送关于当前会话的反馈',
+    compact: '压缩 compact', compactDescription: '压缩以上对话内容',
+    permission: '权限 permission', permissionDescription: '切换权限预设（沙箱模式与审批策略）',
+    model: '模型 model', modelDescription: '选择本会话使用的模型',
+    export: '下载日志 export', exportDescription: '将当前会话内容导出为 ZIP',
+    exportTitle: '会话导出', exportTriggered: '已触发导出。', exportFailed: '导出失败，请稍后重试。',
+    skillUserOnly: '仅用户', noMatches: '没有匹配项',
+    builtinOfficeDocx: '创建、读取、编辑和检查 Word 文档（.docx），包括报告、信函和格式化表格。',
+    builtinOfficePptx: '创建、读取、编辑 PowerPoint 演示文稿（.pptx），包括文本、表格、图片和图表。',
+    builtinOfficeXlsx: '读取、创建和修改 Excel 工作簿（.xlsx），包括数据、公式和格式。',
+    builtinDshBadge: '为文档、Pull/Merge Request 等内容添加官方 “powered by dsh” 徽章。',
+  },
+  validation: { serverRequired: '请输入服务地址。', serverInvalid: '服务地址格式不正确。例如：https://remote.example.com', httpsRequired: '请使用 HTTPS 地址。本地开发环境可以使用 HTTP。', serverPartsForbidden: '请只输入服务地址，不要包含账号信息、查询参数或页面锚点。' },
+  runtime: {
+    identityNotReady: '此手机尚未准备完成，请稍后重试。', zhihuUnsupported: '当前服务不支持知乎授权，请改用其他登录方式。', githubUnsupported: '当前服务不支持 GitHub 授权，请改用其他登录方式。', hostClosed: '与设备的连接已断开。', openSessionFirst: '请先打开对话，再回答这个请求。', networkUnavailable: '当前没有可用网络，恢复网络后会尝试重新连接。', connectHostFirst: '请先连接电脑端设备。', codexUnavailable: '这台设备没有启用 CodeX Remote，或 CodeX 当前不可用。', codexInvalidResponse: 'CodeX Remote 返回了无法识别的数据。', codexTurnUnavailable: '当前 CodeX 回合不属于此连接，无法从手机停止。', codexWorkspaceReadOnly: 'CodeX 工作区可以新增，但重命名、排序和删除仍由电脑端 CodeX 管理。', cursorUnavailable: '这台设备没有启用 Cursor Remote，或 Cursor ACP 当前不可用。', piUnavailable: '这台设备没有启用 Pi Remote，或 Pi ACP 当前不可用。', antigravityUnavailable: '这台设备没有启用 Antigravity Remote，或 Antigravity ACP 当前不可用。', opencodeUnavailable: '这台设备没有启用 OpenCode Remote，或 OpenCode ACP 当前不可用。', claudeUnavailable: '这台设备没有启用 Claude Remote，或 Claude ACP 当前不可用。', cursorTextOnly: 'Cursor Remote 当前仅支持文本消息，暂不支持图片。', piTextOnly: 'Pi Remote 当前仅支持文本消息，暂不支持图片。', hostMissingKey: '这台设备没有可用的安全密钥，请先重新确认并信任它。', unexpectedRelayDevice: '安全连接对应的设备与所选设备不一致。', secureChannelNotConnected: '安全连接尚未建立。', secureHandshakeTimedOut: '建立安全连接超时，请重试。', secureHandshakeOrder: '安全连接握手顺序无效。', secureHandshakeIncomplete: '安全连接握手未完成。', secureHandshakeFailed: '无法完成安全连接握手。',
+  },
+  messageActions: {
+    copy: '复制回答', copied: '已复制', good: '好的回答', bad: '有问题的回答', branch: '在新对话中分支',
+    unavailable: '当前主机或消息不支持此操作', failed: '操作未完成', feedbackSaved: '反馈已保存到主机',
+    usageUnavailable: '用量不可用', timeUnavailable: '时间不可用', usage: '真实用量', input: '输入', output: '输出',
+    cacheRead: '缓存读取', cacheWrite: '缓存写入', reasoning: '推理', total: '总计',
+  },
+  chatProcess: {
+    processActivity: {
+      "thinking": {
+        "running": "正在分析请求",
+        "done": "已完成分析"
+      },
+      "read": {
+        "running": "正在读取文件",
+        "done": "已读取文件"
+      },
+      "readImage": {
+        "running": "正在读取图片",
+        "done": "已读取图片"
+      },
+      "write": {
+        "running": "正在写入文件",
+        "done": "已写入文件"
+      },
+      "search": {
+        "running": "正在搜索代码",
+        "done": "已搜索代码"
+      },
+      "edit": {
+        "running": "正在编辑文件",
+        "done": "修改了文件"
+      },
+      "commands": {
+        "running": "正在运行命令",
+        "done": "执行了命令"
+      },
+      "code": {
+        "running": "正在运行代码",
+        "done": "运行了代码"
+      },
+      "webSearch": {
+        "running": "正在搜索网页",
+        "done": "已搜索网页"
+      },
+      "webFetch": {
+        "running": "正在访问网页",
+        "done": "已访问网页"
+      },
+      "subagents": {
+        "running": "正在协调子智能体",
+        "done": "已协调子智能体"
+      },
+      "plan": {
+        "running": "正在更新计划",
+        "done": "更新了计划"
+      },
+      "questions": {
+        "running": "等待你的操作",
+        "done": "向用户提出了问题"
+      },
+      "tools": {
+        "running": "正在调用工具",
+        "done": "已调用工具"
+      }
+    },
+    stopped: "已停止",
+    join: "，",
+    more: "等",
+    sharedPrefix: '已',
+    joinTwo: (first: string, second: string) => `${first}并${second}`,
+    toolTitles: {
+      bash: '运行命令', pwsh: '运行命令', read: '读取', read_image: '读取图片', write: '写入', edit: '编辑',
+      apply_patch: '编辑', grep: '搜索文件内容', glob: '查找文件', run_code: '代码', web_search: '网页搜索', web_fetch: '网页获取',
+    },
+  },
+  trajectory: {
+    expand: '展开记录', collapse: '收起记录', clearSearch: '清空搜索', attachments: (count: number) => `${count} 张图片`,
+    noText: '无文本内容',
+    open: '切换到轨迹模式', close: '切换到对话模式', title: '轨迹', all: '全部', system: '系统', user: '用户',
+    context: '上下文', assistant: '助手', tool: '工具', search: '搜索消息、工具或轮次', turn: '轮次', empty: '没有匹配的已加载轨迹',
+    loadedOnly: '仅显示已加载的真实消息；加载更早记录可扩展轨迹。',
+  },
+  errors: {
+    'session/writer-held': '该会话被另一端占用。请先在另一端完全退出 DeepSeek Harness，再在这里重试；仅切换会话或关闭窗口可能不会解除占用。你的消息尚未发送。',
+    ACCOUNT_AUTH_REQUIRED: '请先登录，再连接这台手机。', AUTH_INVALID: '登录状态已失效，请重新登录。', AUTH_REQUIRED: '需要重新登录才能继续。', TOKEN_EXPIRED: '登录已过期，请重新登录。', TOKEN_REUSED: '为了保护账号安全，此手机已退出登录。请重新登录。', DEVICE_NOT_FOUND: '找不到这台设备，请刷新设备列表。', DEVICE_REVOKED: '此手机已被移出当前账号，请重新登录。', DEVICE_OWNERSHIP_REQUIRED: '此手机的登录信息已失效，请重新登录。', MEMBERSHIP_REQUIRED: '你已无权访问这台设备。请确认两端登录了同一账号。', HOST_OFFLINE: '这台设备已离线。请确认 DeepSeek Harness 和 DSH Remote 插件正在运行。', DEVICE_OFFLINE: '这台设备已离线。请确认 DeepSeek Harness 和 DSH Remote 插件正在运行。', PEER_IDENTITY_MISMATCH: '这台设备的安全身份已变化。请先确认设备安全，再重新信任。', RATE_LIMITED: '操作太频繁，请稍后再试。', CONNECTION_FAILED: '无法连接这台设备。请检查网络后重试。', P2P_FAILED: '直接连接失败，正在改用服务器转发。', RELAY_UNAVAILABLE: '暂时无法通过服务器连接，请稍后重试。', TURN_UNAVAILABLE: '暂时无法建立稳定连接，正在尝试其他方式。', SECURE_CHANNEL_FAILED: '无法建立安全连接，请重试。', STREAM_TIMEOUT: '会话连接超时，请重试', RPC_TIMEOUT: '设备响应超时，请重试。', UNSUPPORTED_VERSION: 'DSH Remote 版本不兼容，请更新 App 后重试。', METHOD_NOT_ALLOWED: '当前设置不允许从手机执行此操作。', PERMISSION_NOT_PENDING: '这个请求已处理或已过期。', SESSION_NOT_FOUND: '找不到这段对话，请返回对话列表后刷新。', HARNESS_UNAVAILABLE: '这台设备上的 DeepSeek Harness 暂时不可用。请确认它正在运行。', AGENT_BUSY: 'DeepSeek Harness 正在处理其他操作，请稍后再试。', FULL_RESYNC_REQUIRED: '电脑上的对话已更新，请重新打开此对话。',
+    CODEX_UNAVAILABLE: '这台设备上的 CodeX 当前不可用，请确认电脑端已启用并登录 CodeX。', CODEX_TURN_OWNED: '当前 CodeX 回合正由另一台设备操作，请稍后再试。', CODEX_APPROVAL_NOT_FOUND: '这个 CodeX 确认请求已处理或已过期。', CODEX_PATH_NOT_ALLOWED: '这个目录不在电脑端 CodeX 工作区目录中。', FEATURE_NOT_SUPPORTED: '电脑端版本不支持此功能，请更新 DSH Remote 插件。', INVALID_MESSAGE: '服务返回了无法识别的数据，请稍后重试。', serverUnreachable: '无法连接服务。请检查服务地址和网络。', unknown: '操作未完成，请重试。',
+  },
+} as const
+
+export default zhCN

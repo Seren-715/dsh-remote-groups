@@ -1,0 +1,259 @@
+import type { CodexPermissionPreset } from '@dsh-remote/protocol'
+import type { TypertRpcResult } from '../typert-gateway-contract.js'
+import { isCanonicalBase64 } from './codex-image-codec.js'
+import type { JsonRecord } from './virtual-values.js'
+import { errorCode, isRecord, record, requiredString, string } from './virtual-values.js'
+
+export const SESSION_SEARCH_RESULT_LIMIT = 20
+
+export const SESSION_SEARCH_SNIPPET_CODE_POINTS = 240
+
+export const CODEX_DEFAULT_PERMISSION = 'workspace-write'
+
+const MAX_CODEX_PROMPT_PARTS = 16
+
+const MAX_CODEX_PROMPT_TEXT = 256 * 1024
+
+const MAX_CODEX_IMAGE_BASE64 = 288 * 1024 * 1024
+
+const CODEX_IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+
+export const CODEX_IMAGE_ATTACHMENT_PREFIX = 'codex-image:'
+
+const HOST_WORKSPACE_ENDPOINTS = new Set([
+  'workspaceFiles/list', 'workspaceFiles/stat', 'workspaceFiles/read', 'workspaceFiles/readBytes',
+  'workspaceFiles/readAll', 'workspaceFiles/readRelated', 'terminal/environment', 'terminal/shells',
+  'terminal/list', 'terminal/create', 'terminal/write', 'terminal/resize', 'terminal/rename', 'terminal/close',
+])
+
+const HOST_WORKSPACE_STREAM_ENDPOINTS = new Set(['workspaceFiles/changes', 'terminal/follow', 'terminal/retain'])
+
+export function isHostWorkspaceEndpoint(endpoint: string): boolean {
+  return HOST_WORKSPACE_ENDPOINTS.has(endpoint)
+}
+
+export function isHostWorkspaceStreamEndpoint(endpoint: string): boolean {
+  return HOST_WORKSPACE_STREAM_ENDPOINTS.has(endpoint)
+}
+
+export interface StreamedBlock {
+  itemId: string
+  index: number
+  kind: 'text' | 'reasoning'
+  text: string
+}
+
+interface AssistantStreamAttempt {
+  attemptId: string
+  startedAfterSeq: number
+  nextIndex: number
+  stream: Array<{ time: number; chunk: JsonRecord }>
+}
+
+export interface FollowState {
+  sessionId: string
+  threadId: string
+  queue: AsyncValueQueue
+  nextSeq: number
+  turn: number
+  stepOpen: boolean
+  startedItems: Set<string>
+  completedItems: Set<string>
+  streamedBlocks: Map<string, StreamedBlock>
+  nextBlockIndex: number
+  streamActive: boolean
+  assistantStreamRevision: number
+  assistantAttempt?: AssistantStreamAttempt
+  liveItems: Map<string, JsonRecord>
+  liveToolOutput: Map<string, string>
+  liveToolResultSeq: Map<string, number>
+  pendingToolImages: JsonRecord[]
+  requestId?: string
+  activeTurnId?: string
+  rcOnly?: boolean
+  close?: () => Promise<void>
+}
+
+export interface PendingApproval {
+  requestHandle: string
+  sessionId: string
+}
+
+export interface CodexImageAttachmentEntry {
+  sessionId: string
+  attachment: JsonRecord
+  data: string
+}
+
+export function codexPromptInput(content: unknown[]): JsonRecord[] | undefined {
+  if (content.length === 0 || content.length > MAX_CODEX_PROMPT_PARTS) return undefined
+  const input: JsonRecord[] = []
+  for (const value of content) {
+    if (!isRecord(value)) return undefined
+    if (value.type === 'text') {
+      if (typeof value.text !== 'string' || value.text.length === 0 || value.text.length > MAX_CODEX_PROMPT_TEXT) return undefined
+      input.push({ type: 'text', text: value.text })
+      continue
+    }
+    if (value.type === 'image') {
+      if (typeof value.mediaType !== 'string' || !CODEX_IMAGE_MEDIA_TYPES.has(value.mediaType)
+        || typeof value.data !== 'string' || value.data.length > MAX_CODEX_IMAGE_BASE64
+        || !isCanonicalBase64(value.data)) return undefined
+      input.push({ type: 'image', mediaType: value.mediaType, data: value.data })
+      continue
+    }
+    return undefined
+  }
+  return input
+}
+
+export function codexPermissionsProjection(preset: CodexPermissionPreset | undefined): unknown {
+  return {
+    options: [
+      {
+        value: 'workspace-write',
+        name: 'workspace-write',
+        description: 'Write inside the workspace; wider command and file access requires one-time approval.',
+      },
+      {
+        value: 'danger-full-access',
+        name: 'danger-full-access',
+        description: 'Full Host file access without approval prompts for subsequent turns in this virtual Session.',
+      },
+    ],
+    currentValue: preset ?? 'Host settings (not reported)',
+  }
+}
+
+export function codexImageLimitsProjection(): unknown {
+  return {
+    maxImageBytes: 20 * 1024 * 1024,
+    maxImagesPerMessage: MAX_CODEX_PROMPT_PARTS,
+    maxMessageImageBytes: 100 * 1024 * 1024,
+    maxImagePixels: 40_000_000,
+    maxImageDimension: 8_192,
+    mediaTypes: [...CODEX_IMAGE_MEDIA_TYPES],
+  }
+}
+
+export function isCodexPermissionPreset(value: string): value is CodexPermissionPreset {
+  return value === 'workspace-write' || value === 'danger-full-access'
+}
+
+export function sessionIdFromAddress(address: JsonRecord): string {
+  if (address.kind === 'session') return requiredString(address.sessionId, 'sessionId')
+  return requiredString(address.childSessionId, 'childSessionId')
+}
+
+export function carrierArgs(payload: unknown): JsonRecord {
+  return record(record(payload).args)
+}
+
+export function requestArg(args: JsonRecord): JsonRecord {
+  return record(args.request ?? args._request ?? args)
+}
+
+export function rcEndpoint(endpoint: string): string {
+  if (endpoint === 'workspace.list') return 'workspace/list'
+  return endpoint.replace('.', '/')
+}
+
+export function success<T>(value: T): { ok: true; value: T } {
+  return { ok: true, value }
+}
+
+export function failure(code: string, message: string, details: JsonRecord = {}): { ok: false; error: { code: string; message: string; details: JsonRecord } } {
+  return { ok: false, error: { code, message, details } }
+}
+
+export function ok(value?: unknown): TypertRpcResult {
+  return value === undefined ? { ok: true } : { ok: true, value }
+}
+
+export function business(value: unknown): TypertRpcResult {
+  const result = record(value)
+  if (result.ok === true) return ok(result.value)
+  if (result.ok === false) {
+    const error = record(result.error)
+    return fail(string(error.code) ?? 'internal', string(error.message) ?? 'CodeX virtual Harness rejected the request.', record(error.details))
+  }
+  return ok(value)
+}
+
+export function fail(code: string, message: string, details: JsonRecord = {}): TypertRpcResult {
+  return { ok: false, error: { code, message, details } }
+}
+
+export function failFrom(error: unknown): TypertRpcResult {
+  const source = error instanceof Error ? error : new Error(String(error))
+  return fail(errorCode(source) ?? 'internal', source.message, errorDetails(source))
+}
+
+export function isLegacySessionHistoryUnsupported(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return errorCode(error) === 'METHOD_NOT_ALLOWED'
+    || errorCode(error) === 'METHOD_NOT_FOUND'
+    || error.message.includes('The requested Codex method is not available over Remote.')
+}
+
+function errorDetails(error: Error): JsonRecord {
+  return 'details' in error && isRecord(error.details) ? error.details : {}
+}
+
+export function truncateCodePoints(value: string, maximum: number): string {
+  return [...value].slice(0, maximum).join('')
+}
+
+export class AsyncValueQueue implements AsyncIterable<unknown> {
+  private readonly values: unknown[] = []
+  private readonly waiters: Array<(result: IteratorResult<unknown>) => void> = []
+  private closed = false
+  private readonly onAbort: () => void
+
+  constructor(private readonly signal: AbortSignal) {
+    this.onAbort = () => this.close()
+    signal.addEventListener('abort', this.onAbort, { once: true })
+    if (signal.aborted) this.close()
+  }
+
+  push(value: unknown): void {
+    if (this.closed) return
+    const waiter = this.waiters.shift()
+    if (waiter === undefined) this.values.push(value)
+    else waiter({ done: false, value })
+  }
+
+  close(): void {
+    if (this.closed) return
+    this.closed = true
+    this.signal.removeEventListener('abort', this.onAbort)
+    for (const waiter of this.waiters.splice(0)) waiter({ done: true, value: undefined })
+  }
+
+  iterate(dispose: () => void): AsyncIterable<unknown> {
+    const queue = this
+    return {
+      async *[Symbol.asyncIterator](): AsyncIterator<unknown> {
+        try {
+          yield* queue
+        } finally {
+          dispose()
+          queue.close()
+        }
+      },
+    }
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<unknown> {
+    while (true) {
+      if (this.values.length > 0) {
+        yield this.values.shift()
+        continue
+      }
+      if (this.closed) return
+      const next = await new Promise<IteratorResult<unknown>>(resolve => this.waiters.push(resolve))
+      if (next.done) return
+      yield next.value
+    }
+  }
+}

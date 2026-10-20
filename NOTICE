@@ -1,0 +1,16 @@
+DSH Remote Groups
+Integration and modifications Copyright 2026 Seren-715.
+
+Based on DS Harness Remote:
+https://github.com/liguobao/ds-harness-remote
+Copyright (c) 2026 DSH Remote contributors. MIT License.
+See remote/packages/plugin/LICENSE and LICENSES/MIT.txt.
+
+Based on DS Bot:
+https://github.com/Fei2411/DeepSeek-Bot
+Copyright 2026 Fei2411 and the DS Bot contributors. Apache License 2.0.
+See host/LICENSE, host/NOTICE and the Android vendor LICENSE/NOTICE.
+
+This is an independent community derivative. Upstream copyright and
+attribution notices remain applicable. Third-party dependencies retain
+their own licenses; no endorsement by upstream authors is implied.

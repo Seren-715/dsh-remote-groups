@@ -1,0 +1,1509 @@
+import * as ImagePicker from 'expo-image-picker'
+import {
+  ArrowLeft,
+  ArrowUp,
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  CircleStop,
+  Folder,
+  Images,
+  Layers,
+  ListTree,
+  Menu,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  Terminal,
+  Users,
+  X,
+} from 'lucide-react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native'
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  FlatList,
+  Image,
+  Keyboard,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
+import Svg,{ Path } from 'react-native-svg'
+import { strings as zhCN } from '../locales/i18n'
+import { sessionPermissions } from '../services/session-permissions'
+import type { SkillEntry } from '../services/session-tools'
+import type { CustomPrompt } from '../services/storage'
+import { BUILT_IN_PROMPTS, loadCustomPrompts, saveCustomPrompts } from '../services/storage'
+import { hasVisibleMessageText } from '../state/event-reducer'
+import type { ChatSection } from '../state/message-helpers'
+import { chatSections, inboxQueuedItems, inboxRpcIds, mergeReplyReasoning } from '../state/message-helpers'
+import { requireSessionTools, useAppStore } from '../state/store'
+import { placeUiArtifacts, projectUiArtifacts, type UiArtifact } from '../state/ui-artifacts'
+import type {
+  ChatItem,
+  ModelCatalogModel,
+  ModelProviderGroup,
+  PermissionSelect,
+  PromptImage,
+  TeamMemberSnapshot,
+  TeamTaskSnapshot,
+  WorkspaceView,
+} from '../types'
+import { BlurHeaderFrame, IconButton, TopBar } from '../ui/components'
+import { FISH_LOGO_PATH, FISH_LOGO_VIEWBOX } from '../ui/fish-logo'
+import { KeyboardInset } from '../ui/keyboard-inset'
+import { markdownFilePath, MarkdownLinkProvider } from '../ui/markdown'
+import type { MentionGroup, MentionItem, MentionType } from '../ui/mention-popover'
+import {
+  detectMention,
+  fileMentionText,
+  filterByQuery,
+  maskPersonalPath,
+  MentionPopover,
+  sessionMentionText,
+  splitDraftSegments,
+} from '../ui/mention-popover'
+import { OfficialMenuIcons } from '../ui/official-menu-icons'
+import { useResponsiveLayout } from '../ui/responsive'
+import { spacing } from '../ui/theme'
+import { useTheme } from '../ui/theme-context'
+import { useThemedStyles } from '../ui/use-themed-styles'
+import { promptImageFromAsset, sessionImageLimits, validatePromptImages } from './chat-images'
+import { ChatTrajectory } from './chat-trajectory'
+import { ChildAgentPanel, TeamAgentPanel } from './chat/agents'
+import {
+  ChatImages,
+  ChatItemView,
+  ChatProcessGroup,
+  isActiveChatItem,
+  QueueDock,
+  ReplyStatusDots,
+  WelcomeMessage,
+} from './chat/messages'
+import { ModalSurface, usePickerListMaxHeight } from './chat/modal'
+import {
+  agentPresetName,
+  builtinPresetName,
+  ModelPicker,
+  ModePicker,
+  permissionDisplayName,
+  PermissionPicker,
+  PromptEditor,
+  PromptsManager,
+  PromptsPicker,
+  ToolAccessPicker,
+  WorkspacePicker,
+} from './chat/pickers'
+import { relativeTime, sessionTitle } from './chat/presentation'
+import { createStyles } from './chat/styles'
+import { useLiveSessionStatus } from './device-screens'
+import { SessionInfo } from './chat/session-info'
+import { workspaceStableKey } from '../lib/workspace-key'
+import { HostSessionsDrawer } from './host-sessions-drawer'
+import { resolveSessionDisplayTitle } from './session-title'
+import { SessionToolsPanel } from './session-tools-panel'
+
+const EMPTY_CHAT_ITEMS: ChatItem[] = []
+
+/** Soft hint threshold; the composer accepts longer input instead of silently truncating. */
+const LONG_DRAFT_HINT = 12_000
+
+/** Hard cap mirroring the largest backend prompt budget (ACP/CodeX 256 KiB). */
+const LONG_DRAFT_MAX = 256_000
+
+export function ChatScreen({ onBack, onOpenDevices, onNewSession, onOpenWorkspaces }: { onBack: () => void; onOpenDevices: () => void; onNewSession?: () => void; onOpenWorkspaces?: (focusWorkspaceKey?: string) => void }) {
+  // New subagent children and running-state changes must reach `sessions`
+  // without leaving the chat (the list screens unmount here).
+  useLiveSessionStatus()
+  const session = useAppStore(state => state.selectedSession)
+  const hostId = useAppStore(state => state.selectedDevice?.deviceId)
+  const hostPlatform = useAppStore(state => state.selectedDevice?.platform)
+  const messages = useAppStore(state => session === undefined ? EMPTY_CHAT_ITEMS : state.messages[session.sessionId] ?? EMPTY_CHAT_ITEMS)
+  const busy = useAppStore(state => state.busyAction)
+  const connection = useAppStore(state => state.connection)
+  const historyHasMore = useAppStore(state => state.historyHasMore)
+  const historyLoadingOlder = useAppStore(state => state.historyLoadingOlder)
+  const sessionModels = useAppStore(state => state.sessionModels)
+  const modelSelecting = useAppStore(state => state.modelSelecting)
+  const permissionSelecting = useAppStore(state => state.permissionSelecting)
+  const sendMessage = useAppStore(state => state.sendMessage)
+  const stopSession = useAppStore(state => state.stopSession)
+  const reconnect = useAppStore(state => state.reconnect)
+  const openSession = useAppStore(state => state.openSession)
+  const respondApproval = useAppStore(state => state.respondApproval)
+  const respondQuestion = useAppStore(state => state.respondQuestion)
+  const loadOlderHistory = useAppStore(state => state.loadOlderHistory)
+  const selectModel = useAppStore(state => state.selectModel)
+  const selectPermission = useAppStore(state => state.selectPermission)
+  const retrySendMessage = useAppStore(state => state.retrySendMessage)
+  const loadAgentPresets = useAppStore(state => state.loadAgentPresets)
+  const selectAgentPreset = useAppStore(state => state.selectAgentPreset)
+  const createSession = useAppStore(state => state.createSession)
+  const archiveSession = useAppStore(state => state.archiveSession)
+  const workspaces = useAppStore(state => state.workspaces)
+  const sessions = useAppStore(state => state.sessions)
+  const agentPresetOptions = useAppStore(state => state.agentPresetOptions)
+  const agentPresetLoading = useAppStore(state => state.agentPresetLoading)
+  const agentPresetSelecting = useAppStore(state => state.agentPresetSelecting)
+  const [draft, setDraft] = useState('')
+  const [trajectory, setTrajectory] = useState(false)
+  const [subagentsOpen, setSubagentsOpen] = useState(false)
+  const [teamOpen, setTeamOpen] = useState(false)
+
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [sessionInfoOpen, setSessionInfoOpen] = useState(false)
+
+  // Web-style blue marks: `/` commands and `@` references render in accent blue.
+  const draftSegments = useMemo(() => splitDraftSegments(draft), [draft])
+  const [images, setImages] = useState<PromptImage[]>([])
+  const [pickingImages, setPickingImages] = useState(false)
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false)
+  const [modePickerOpen, setModePickerOpen] = useState(false)
+  const [permissionPickerOpen, setPermissionPickerOpen] = useState(false)
+  const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false)
+  const [toolPickerOpen, setToolPickerOpen] = useState(false)
+  const [toolsMode, setToolsMode] = useState<'files' | 'terminal'>()
+  const [fileLinkPath, setFileLinkPath] = useState<string>()
+  const [promptsPickerOpen, setPromptsPickerOpen] = useState(false)
+  const [customPrompts, setCustomPrompts] = useState<readonly CustomPrompt[]>()
+  const [promptEditing, setPromptEditing] = useState<CustomPrompt | 'new' | null>(null)
+  const [promptsManagerOpen, setPromptsManagerOpen] = useState(false)
+  const [promptsLoading, setPromptsLoading] = useState(false)
+  const promptsLoadingRef = useRef(false)
+  const promptMutatedRef = useRef(false)
+  // `/` command and `@` reference popover state anchored to the composer cursor.
+  const [mentionType, setMentionType] = useState<MentionType | null>(null)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [selection, setSelection] = useState({ start: 0, end: 0 })
+  const composerInputRef = useRef<TextInput>(null)
+  const draftRef = useRef('')
+  const selectionRef = useRef({ start: 0, end: 0 })
+  /** Start index of the active `/` / `@` trigger inside the draft. */
+  const mentionSpanRef = useRef(0)
+  const [skillCatalog, setSkillCatalog] = useState<SkillEntry[]>()
+  const [skillCatalogFailed, setSkillCatalogFailed] = useState(false)
+  const [workspaceFileRefs, setWorkspaceFileRefs] = useState<WorkspaceFileRef[]>()
+  const [fileListFailed, setFileListFailed] = useState(false)
+  const skillRequestedRef = useRef<string | undefined>(undefined)
+  const filesRequestedRef = useRef<string | undefined>(undefined)
+  const [permissionOptions, setPermissionOptions] = useState<PermissionSelect['options']>()
+  const [permissionError, setPermissionError] = useState<string>()
+  const [permissionRevision, setPermissionRevision] = useState(0)
+  const [permissionLoading, setPermissionLoading] = useState(false)
+  const inlinePermissionOptions = session?.projections?.values?.permissions
+  useEffect(() => {
+    setPermissionOptions(undefined)
+    setPermissionError(undefined)
+    setPermissionLoading(false)
+    if (session === undefined || session.backend === 'codex' || connection.phase !== 'connected') return
+    const projected = sessionPermissions(session)
+    if (projected === undefined || projected.options.length > 0) return
+    const controller = new AbortController()
+    setPermissionLoading(true)
+    void Promise.resolve().then(() => requireSessionTools().permissionOptions(controller.signal))
+      .then(options => { if (!controller.signal.aborted) setPermissionOptions(options) })
+      .catch(() => { if (!controller.signal.aborted) setPermissionError(zhCN.tools.permissionUnavailable) })
+      .finally(() => { if (!controller.signal.aborted) setPermissionLoading(false) })
+    return () => controller.abort()
+  }, [session?.sessionId, session?.backend, inlinePermissionOptions, connection.phase, permissionPickerOpen, permissionRevision])
+  useEffect(() => { setToolsMode(undefined) }, [session?.sessionId, connection.phase])
+  // Composer quick prompts: load built-ins and saved entries once per connection.
+  useEffect(() => {
+    if (connection.phase !== 'connected') return
+    if (customPrompts !== undefined || promptsLoadingRef.current) return
+    promptsLoadingRef.current = true
+    setPromptsLoading(true)
+    let cancelled = false
+    void loadCustomPrompts()
+      .then(items => {
+        if (cancelled || promptMutatedRef.current) return
+        setCustomPrompts(items)
+      })
+      .finally(() => {
+        promptsLoadingRef.current = false
+        if (!cancelled) setPromptsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [connection.phase, customPrompts])
+  // The mode (agent-preset) roster is deployment-level; fetch it once per connection.
+  useEffect(() => {
+    if (connection.phase !== 'connected' || session?.backend === 'codex') return
+    if (useAppStore.getState().agentPresetOptions !== undefined) return
+    void loadAgentPresets()
+  }, [connection.phase, session?.sessionId, session?.backend, loadAgentPresets])
+  // `/` 技能目录与 `@` 文件树按会话懒加载一次；未拉取成功时技能分组回落到内置技能。
+  useEffect(() => {
+    setSkillCatalog(undefined)
+    setSkillCatalogFailed(false)
+    setWorkspaceFileRefs(undefined)
+    setFileListFailed(false)
+    skillRequestedRef.current = undefined
+    filesRequestedRef.current = undefined
+    setMentionType(null)
+  }, [session?.sessionId])
+  useEffect(() => {
+    const sessionId = session?.sessionId
+    if (mentionType === null || sessionId === undefined) return
+    if (session?.backend === 'codex' || session?.backend === 'claude' || connection.phase !== 'connected') return
+    if (mentionType === 'command' && skillCatalog === undefined && skillRequestedRef.current !== sessionId) {
+      skillRequestedRef.current = sessionId
+      void Promise.resolve().then(() => requireSessionTools().listSkills(sessionId))
+        .then(rows => { if (skillRequestedRef.current === sessionId) setSkillCatalog(rows) })
+        .catch(() => { if (skillRequestedRef.current === sessionId) setSkillCatalogFailed(true) })
+    }
+    if (mentionType === 'context' && workspaceFileRefs === undefined && filesRequestedRef.current !== sessionId) {
+      filesRequestedRef.current = sessionId
+      void loadWorkspaceFileRefs(sessionId)
+        .then(rows => { if (filesRequestedRef.current === sessionId) setWorkspaceFileRefs(rows) })
+        .catch(() => { if (filesRequestedRef.current === sessionId) setFileListFailed(true) })
+    }
+  }, [mentionType, session?.sessionId, session?.backend, connection.phase, skillCatalog, workspaceFileRefs])
+  const [reconnectingSession, setReconnectingSession] = useState(false)
+  const [newSessionPending, setNewSessionPending] = useState(false)
+  const listRef = useRef<FlatList<ChatSection>>(null)
+  const lastStreamingScrollAt = useRef(0)
+  const scrollFrameRef = useRef<number | null>(null)
+  const scrollAnimatedRef = useRef(false)
+  const laidOutSessionRef = useRef<string | undefined>(undefined)
+  /** Keep the viewport on the latest turn until the user scrolls away. */
+  const pinToBottomRef = useRef(true)
+  /** Re-pin while the first session layout (markdown / images) is still settling. */
+  const initialPinRef = useRef(true)
+  const visibleMessages = useMemo(() => (session?.backend === 'codex' ? mergeReplyReasoning(messages) : messages).filter(item =>
+    item.kind !== 'message' || (item.role !== 'system' && !item.context && item.sendState !== 'queued'
+      // An adopted row is in the Host queue regardless of the local sendState
+      // snapshot: it leaves the timeline for the queue dock until its echo
+      // replaces it (or the authoritative drop retires it).
+      && !(item.queuedAdopted === true && item.sendState === undefined) && (
+      hasVisibleMessageText(item.text)
+      || hasVisibleMessageText(item.reasoning ?? '')
+      || (item.images?.length ?? 0) > 0
+      // Output-less failure turns keep an empty assistant row carrying only the
+      // turnEnd reason — it must stay visible so the failure is explainable.
+      || item.turnEnd !== undefined))), [messages, session?.backend])
+  const visibleSections = useMemo(() => chatSections(visibleMessages), [visibleMessages])
+  const uiBySection = useMemo(() => {
+    if (hostId === undefined || session === undefined
+      || (session.backend !== undefined && session.backend !== 'harness')) return new Map<string, { cards: UiArtifact[]; pointers: UiArtifact[] }>()
+    return placeUiArtifacts(projectUiArtifacts(messages, hostId, session.sessionId), visibleSections)
+  }, [messages, hostId, session?.sessionId, session?.backend, visibleSections])
+  const visibleUiIds = useMemo(() => new Set([...uiBySection.values()].flatMap(value => value.cards.map(card => card.uiId))), [uiBySection])
+  // Queued prompts: the Host `inbox` projection is authoritative (includes
+  // items queued from other devices); local `queued` rows are the fallback for
+  // Hosts without projections. Rows in this state are hidden from the timeline.
+  const inboxProjection = (session?.projections?.values as Record<string, unknown> | undefined)?.inbox
+  const queueItems = useMemo(() => {
+    const inboxItems = inboxProjection === undefined ? [] : inboxQueuedItems(inboxProjection)
+    const adopted = inboxRpcIds(inboxProjection)
+    const pending = messages.flatMap(item => item.kind === 'message' && item.role === 'user' && item.sendState === 'queued'
+      && item.queuedAdopted !== true
+      && (item.requestRpcId === undefined || !adopted.has(item.requestRpcId)) ? [{ preview: item.text }] : [])
+    // Union (the official QueueDock's pendingQueue behaviour): inbox rows are
+    // authoritative and local rows not yet adopted by the projection cover the
+    // lag window, so a queued prompt is never invisible on both ends. Only
+    // inbox rows carry the host item id needed for queue actions.
+    return [...inboxItems, ...pending]
+  }, [inboxProjection, messages])
+  // Child (subagent) sessions spawned by this session — the data has always
+  // been in `sessions` (parentSessionId/origin), it just had no UI.
+  const childSessions = useMemo(
+    () => sessions.filter(item => item.parentSessionId === session?.sessionId),
+    [sessions, session?.sessionId])
+  // Agent team: the `agentTeam` projection carries the durable roster
+  // (member name + role description + phase) and the task board (subject +
+  // status + owning member). This is the team view — distinct from the
+  // subagent child-session list above.
+  const teamState = useMemo(() => {
+    const raw = (session?.projections?.values as Record<string, unknown> | undefined)?.agentTeam
+    if (typeof raw !== 'object' || raw === null) return undefined
+    const record = raw as Record<string, unknown>
+    const members = Array.isArray(record.members) ? record.members.filter((entry): entry is TeamMemberSnapshot =>
+      typeof entry === 'object' && entry !== null && typeof (entry as Record<string, unknown>).id === 'string') : []
+    const tasks = Array.isArray(record.tasks) ? record.tasks.filter((entry): entry is TeamTaskSnapshot =>
+      typeof entry === 'object' && entry !== null && typeof (entry as Record<string, unknown>).id === 'string') : []
+    return { members, tasks } satisfies { members: TeamMemberSnapshot[]; tasks: TeamTaskSnapshot[] }
+  }, [session?.projections?.values])
+  const lastItem = visibleMessages.at(-1)
+  const lastContentVersion = lastItem?.kind === 'message'
+    ? `${lastItem.id}:${lastItem.text.length}:${lastItem.reasoning?.length ?? 0}`
+    : undefined
+  const sessionId = session?.sessionId
+  const panelOpen = plusMenuOpen || modelPickerOpen || modePickerOpen || permissionPickerOpen
+    || workspacePickerOpen || toolPickerOpen || toolsMode !== undefined || trajectory || mentionType !== null
+    || promptsPickerOpen || promptsManagerOpen || promptEditing !== null || subagentsOpen || teamOpen || sessionInfoOpen
+
+  const { colors } = useTheme()
+  const styles = useThemedStyles(createStyles)
+  // Landscape phones are short: keep the composer compact when the IME is up
+  // and let the list use a readable centred column on wide windows.
+  const { landscape, compactHeight, height, width, contentMaxWidth } = useResponsiveLayout()
+  const plusMenuListMaxHeight = usePickerListMaxHeight()
+  const compactComposer = landscape || compactHeight
+  const composerInputMaxHeight = compactComposer ? Math.max(48, Math.min(96, Math.round(height * 0.22))) : 126
+  // Tablets keep the session list visible beside the conversation. Short
+  // landscape phone windows stay single-pane; a wide tablet keeps the split
+  // even while the IME reduces the window height.
+  const tabletSplit = width >= 760 && (height >= 520 || width >= 1000)
+  useEffect(() => {
+    if (tabletSplit) setSessionsOpen(false)
+  }, [tabletSplit])
+  const readableColumn = { width: '100%' as const, maxWidth: contentMaxWidth, alignSelf: 'center' as const }
+
+  const scrollToBottom = useCallback((animated: boolean) => {
+    listRef.current?.scrollToEnd({ animated })
+  }, [])
+
+  // FlatList can report several content-size changes while markdown rows are
+  // measuring. Coalesce those reports into one native scroll command so the
+  // initial render does not monopolize the JS responder queue.
+  const scheduleScrollToBottom = useCallback((animated: boolean) => {
+    scrollAnimatedRef.current = scrollAnimatedRef.current || animated
+    if (scrollFrameRef.current !== null) return
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null
+      const shouldAnimate = scrollAnimatedRef.current
+      scrollAnimatedRef.current = false
+      scrollToBottom(shouldAnimate)
+    })
+  }, [scrollToBottom])
+
+  // Entering a session (or switching sessions) should land on the latest turn.
+  useEffect(() => {
+    setTrajectory(false)
+    pinToBottomRef.current = true
+    initialPinRef.current = true
+    laidOutSessionRef.current = undefined
+  }, [sessionId])
+
+  useEffect(() => () => {
+    if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current)
+    scrollFrameRef.current = null
+    scrollAnimatedRef.current = false
+  }, [])
+
+  // A sheet or picker owns the user's next touch. Cancel a queued list jump
+  // as soon as it opens so a streaming update cannot move the responder under
+  // the panel.
+  useEffect(() => {
+    if (!panelOpen || scrollFrameRef.current === null) return
+    cancelAnimationFrame(scrollFrameRef.current)
+    scrollFrameRef.current = null
+    scrollAnimatedRef.current = false
+  }, [panelOpen])
+
+  // Let the first layout frame finish before jumping to the end. This keeps
+  // the top bar and Android back dispatch responsive while a large history
+  // page is being mounted, without relying on the deprecated InteractionManager.
+  useEffect(() => {
+    if (panelOpen || visibleMessages.length === 0 || historyLoadingOlder || sessionId === undefined) return
+    if (!pinToBottomRef.current && !initialPinRef.current) return
+    const timer = setTimeout(() => {
+      if (pinToBottomRef.current || initialPinRef.current) scheduleScrollToBottom(false)
+    }, 32)
+    return () => clearTimeout(timer)
+  }, [historyLoadingOlder, panelOpen, scheduleScrollToBottom, sessionId, visibleMessages.length])
+
+  // Loading older history prepends above the viewport — do not yank to the end.
+  useEffect(() => {
+    if (!historyLoadingOlder) return
+    pinToBottomRef.current = false
+    initialPinRef.current = false
+  }, [historyLoadingOlder])
+
+  // Scroll when a brand-new item is appended. Streaming deltas keep the same
+  // item id, so this fires once per assistant step instead of once per chunk.
+  useEffect(() => {
+    if (panelOpen || visibleMessages.length === 0 || historyLoadingOlder || sessionId === undefined) return
+    if (!pinToBottomRef.current && !initialPinRef.current) return
+    scheduleScrollToBottom(initialPinRef.current ? false : true)
+  }, [visibleMessages.length, historyLoadingOlder, panelOpen, scheduleScrollToBottom, sessionId])
+
+  // While an assistant message is streaming, its text grows on every chunk.
+  // Following it with animated scrolls piles up animation frames on the JS
+  // thread (freezing back navigation and the keyboard). Snap to the end at
+  // most ~10 Hz instead, without animation.
+  useEffect(() => {
+    if (panelOpen || visibleMessages.length === 0 || lastContentVersion === undefined || historyLoadingOlder) return
+    if (!pinToBottomRef.current) return
+    const now = Date.now()
+    if (now - lastStreamingScrollAt.current < 100) return
+    lastStreamingScrollAt.current = now
+    scheduleScrollToBottom(false)
+  }, [lastContentVersion, visibleMessages.length, historyLoadingOlder, panelOpen, scheduleScrollToBottom])
+
+  const onListLayout = useCallback(() => {
+    // A session switch can render the list before its viewport and markdown
+    // rows have measured. Defer one extra frame so the initial jump reaches
+    // the actual end rather than the pre-layout content height.
+    if (panelOpen || visibleMessages.length === 0 || historyLoadingOlder || sessionId === undefined) return
+    if (laidOutSessionRef.current === sessionId) return
+    laidOutSessionRef.current = sessionId
+    scheduleScrollToBottom(false)
+  }, [historyLoadingOlder, panelOpen, scheduleScrollToBottom, sessionId, visibleMessages.length])
+
+  const onListScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
+    const distanceFromEnd = contentSize.height - layoutMeasurement.height - contentOffset.y
+    const atBottom = distanceFromEnd <= 80
+    pinToBottomRef.current = atBottom
+  }, [])
+
+  // Stable renderItem keeps FlatList rows from re-rendering on every streaming
+  // delta; ChatItemView is memoized so only the changing row re-renders.
+  const renderChatItem = useCallback(({ item }: { item: ChatSection }) => item.kind === 'process'
+    ? <ChatProcessGroup items={item.items} artifacts={uiBySection.get(item.key)?.cards ?? []} updatedArtifacts={uiBySection.get(item.key)?.pointers ?? []} availableUiIds={visibleUiIds} busyAction={busy} onApproval={respondApproval} onQuestion={respondQuestion} />
+    : <ChatItemView item={item.item} busyAction={busy} compact={false} onApproval={respondApproval} onQuestion={respondQuestion} />,
+  [busy, respondApproval, respondQuestion, uiBySection, visibleUiIds])
+
+  // Keep chat's back action at the top of the Android responder stack. The
+  // navigator also handles back globally, but a freshly mounted FlatList can
+  // otherwise win the first dispatch while its cells are being measured.
+  // Back inside a subagent child returns to its parent conversation (the
+  // official subagent UI's navigation), instead of leaving the chat entirely.
+  const backFromChat = () => {
+    const parent = session?.parentSessionId === undefined
+      ? undefined
+      : sessions.find(item => item.sessionId === session.parentSessionId)
+    if (session?.parentSessionId !== undefined && parent !== undefined) {
+      Keyboard.dismiss()
+      void openSession(parent)
+      return
+    }
+    Keyboard.dismiss()
+    onBack()
+  }
+  const onBackRef = useRef(backFromChat)
+  onBackRef.current = backFromChat
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (subagentsOpen) {
+        setSubagentsOpen(false)
+        return true
+      }
+      if (teamOpen) {
+        setTeamOpen(false)
+        return true
+      }
+      if (plusMenuOpen) {
+        Keyboard.dismiss()
+        setPlusMenuOpen(false)
+        return true
+      }
+      if (modelPickerOpen) {
+        setModelPickerOpen(false)
+        return true
+      }
+      if (modePickerOpen) {
+        setModePickerOpen(false)
+        return true
+      }
+      if (permissionPickerOpen) {
+        setPermissionPickerOpen(false)
+        return true
+      }
+      if (workspacePickerOpen) {
+        setWorkspacePickerOpen(false)
+        return true
+      }
+      if (toolPickerOpen) {
+        setToolPickerOpen(false)
+        return true
+      }
+      if (promptEditing !== null) {
+        setPromptEditing(null)
+        setPromptsManagerOpen(true)
+        return true
+      }
+      if (promptsManagerOpen) {
+        setPromptsManagerOpen(false)
+        setPromptsPickerOpen(true)
+        return true
+      }
+      if (promptsPickerOpen) {
+        setPromptsPickerOpen(false)
+        return true
+      }
+      if (toolsMode !== undefined) {
+        setToolsMode(undefined)
+        setFileLinkPath(undefined)
+        return true
+      }
+      if (trajectory) { setTrajectory(false); return true }
+      // Dismiss the IME only while an input actually owns focus. A cached
+      // "keyboard visible" flag (or Keyboard.isVisible(), fed by the same
+      // events that Android can drop) once stale swallows every back press —
+      // the "back does nothing" dead end. Focus state is authoritative.
+      if (composerInputRef.current?.isFocused() === true) {
+        Keyboard.dismiss()
+        return true
+      }
+      Keyboard.dismiss()
+      onBackRef.current()
+      return true
+    })
+    return () => subscription.remove()
+  }, [modePickerOpen, modelPickerOpen, permissionPickerOpen, plusMenuOpen, toolPickerOpen, toolsMode, workspacePickerOpen, trajectory, promptsPickerOpen, promptsManagerOpen, promptEditing])
+
+  const skillItems: MentionItem[] = useMemo(() => (skillCatalog ?? []).map(row => ({
+    id: `skill:${row.name}`,
+    icon: OfficialMenuIcons.skill,
+    title: row.name,
+    description: row.modelInvocable ? row.description : `${zhCN.mention.skillUserOnly} · ${row.description}`,
+    onPress: () => insertMentionText(`/${row.name} `),
+  })), [skillCatalog])
+  // 「@」菜单：对话 / 文件 两组，均支持模糊检索。
+  const sessionItems: MentionItem[] = useMemo(() => sessions.filter(item => item.sessionId !== session?.sessionId && item.backend !== 'codex')
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map(item => {
+      const title = resolveSessionDisplayTitle(item) ?? item.title ?? item.sessionId
+      const owner = workspaces.find(workspace => workspace.sessionIds.includes(item.sessionId))
+      return {
+        id: item.sessionId,
+        icon: OfficialMenuIcons.referenceSession,
+        title,
+        description: owner === undefined ? zhCN.chat.workspaceNone : `${owner.title} · ${maskPersonalPath(owner.path)}`,
+        meta: relativeTime(item.updatedAt),
+        onPress: () => insertMentionText(sessionMentionText(item.sessionId, title)),
+      }
+    }), [session?.sessionId, sessions, workspaces])
+  const fileItems: MentionItem[] = useMemo(() => (workspaceFileRefs ?? []).map(ref => {
+    const isDir = ref.kind === 'directory'
+    const Icon = isDir ? OfficialMenuIcons.referenceFolder : OfficialMenuIcons.referenceFile
+    return {
+      id: ref.path,
+      icon: Icon,
+      title: ref.path,
+      onPress: () => { const mention = fileMentionText(ref.path, isDir); if (mention !== undefined) insertMentionText(mention) },
+    }
+  }), [workspaceFileRefs])
+
+  const openFileLink = useCallback((href: string) => {
+    if (session?.backend === 'claude') return
+    const path = markdownFilePath(href)
+    if (path === undefined) return
+    setFileLinkPath(path)
+    setToolsMode('files')
+  }, [session?.backend])
+
+  if (session === undefined) return null
+
+  const submit = async () => {
+    if (!connected || permissionSelecting) return
+    // Read the live ref: the render-closure `draft` can lag the last keystrokes
+    // typed right before the tap, silently dropping the tail of the message.
+    const submittedDraft = draftRef.current
+    const text = submittedDraft.trim()
+    if (text.length === 0 && images.length === 0) return
+    if (text.length > LONG_DRAFT_MAX) {
+      Alert.alert(zhCN.chat.draftTooLongTitle, zhCN.chat.draftTooLong(LONG_DRAFT_MAX))
+      return
+    }
+    const submittedImages = images
+    applyDraft('')
+    setImages([])
+    setMentionType(null)
+    selectionRef.current = { start: 0, end: 0 }
+    setSelection({ start: 0, end: 0 })
+    const outcome = await sendMessage(text, submittedImages)
+    if (outcome === 'rejected') {
+      // Nothing was persisted (command failure): restore the draft without
+      // clobbering input typed while the send was in flight.
+      const inFlight = draftRef.current
+      applyDraft(inFlight.length === 0 ? submittedDraft : `${submittedDraft}\n${inFlight}`)
+      setImages(previous => previous.length === 0 ? submittedImages : [...submittedImages, ...previous])
+      Alert.alert(zhCN.messageActions.failed, useAppStore.getState().error ?? zhCN.messageActions.unavailable)
+    } else if (outcome === 'sent') {
+      const result = useAppStore.getState().commandResult
+      if (result?.sessionId === session.sessionId && useAppStore.getState().selectedSession?.sessionId === session.sessionId) {
+        Alert.alert(zhCN.mention.commandSection, result.text)
+        useAppStore.setState({ commandResult: undefined })
+      }
+    }
+    // 'kept': the row stays in the timeline with an inline failed/unconfirmed
+    // state and a retry affordance — no Alert and no draft restore.
+  }
+
+  const pickImages = async () => {
+    const limits = sessionImageLimits(session)
+    const remaining = limits === undefined ? 0 : Math.max(0, limits.maxImagesPerMessage - images.length)
+    if (limits !== undefined && remaining === 0) {
+      Alert.alert(zhCN.chat.imageLimitTitle, zhCN.chat.tooManyImages(limits.maxImagesPerMessage))
+      return
+    }
+    setPickingImages(true)
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+        orderedSelection: true,
+        allowsEditing: false,
+        quality: 1,
+        base64: true,
+      })
+      if (result.canceled) return
+      const picked = result.assets.map(promptImageFromAsset)
+      const next = [...images, ...picked]
+      const problem = validatePromptImages(next, limits)
+      if (problem !== undefined) {
+        Alert.alert(zhCN.chat.imageLimitTitle, problem)
+        return
+      }
+      setImages(next)
+    } catch {
+      Alert.alert(zhCN.chat.imagePickerFailedTitle, zhCN.chat.imagePickerFailedBody)
+    } finally {
+      setPickingImages(false)
+    }
+  }
+
+  const takePhoto = async () => {
+    const limits = sessionImageLimits(session)
+    const remaining = limits === undefined ? 0 : Math.max(0, limits.maxImagesPerMessage - images.length)
+    if (limits !== undefined && remaining === 0) {
+      Alert.alert(zhCN.chat.imageLimitTitle, zhCN.chat.tooManyImages(limits.maxImagesPerMessage))
+      return
+    }
+    setPickingImages(true)
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) {
+        Alert.alert(zhCN.chat.cameraPermissionTitle, zhCN.chat.cameraPermissionBody)
+        return
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+        base64: true,
+      })
+      if (result.canceled) return
+      const picked = result.assets.map(promptImageFromAsset)
+      const next = [...images, ...picked]
+      const problem = validatePromptImages(next, limits)
+      if (problem !== undefined) {
+        Alert.alert(zhCN.chat.imageLimitTitle, problem)
+        return
+      }
+      setImages(next)
+    } catch {
+      Alert.alert(zhCN.chat.imagePickerFailedTitle, zhCN.chat.imagePickerFailedBody)
+    } finally {
+      setPickingImages(false)
+    }
+  }
+
+  const openPlusMenu = () => {
+    // The composer TextInput often still owns focus when the user taps +.
+    // Dismissing the IME first gives the transparent Modal the full window and
+    // keeps its sheet (including the close target) out of the keyboard's touch
+    // region on Android.
+    Keyboard.dismiss()
+    setPlusMenuOpen(true)
+  }
+
+  const closePlusMenu = () => {
+    Keyboard.dismiss()
+    setPlusMenuOpen(false)
+  }
+
+  const openPromptsPicker = () => {
+    Keyboard.dismiss()
+    setMentionType(null)
+    setPromptsPickerOpen(true)
+  }
+
+  const handleBack = () => {
+    Keyboard.dismiss()
+    if (trajectory) {
+      setTrajectory(false)
+      return
+    }
+    onBackRef.current()
+  }
+
+  const pickModel = async (group: ModelProviderGroup, model: ModelCatalogModel, reasoningEffort?: string) => {
+    setModelPickerOpen(false)
+    await selectModel({
+      provider: group.id,
+      model: model.id,
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    })
+  }
+
+  const reconnectCurrentSession = async () => {
+    if (reconnectingSession) return
+    setReconnectingSession(true)
+    try {
+      await reconnect()
+    } finally {
+      setReconnectingSession(false)
+    }
+  }
+
+  const currentAgentPresetId = session.agentPreset ?? agentPresetOptions?.find(option => option.isDefault)?.id
+  const currentWorkspace = workspaces.find(workspace => workspace.sessionIds.includes(session.sessionId))
+  const workspaceLabel = currentWorkspace?.title ?? zhCN.chat.workspaceNone
+  const currentPresetRow = agentPresetOptions?.find(option => option.id === currentAgentPresetId)
+  const modeLabel = currentAgentPresetId === undefined
+    ? zhCN.chat.modeDefault
+    : currentPresetRow === undefined
+      ? builtinPresetName(currentAgentPresetId) ?? currentAgentPresetId
+      : agentPresetName(currentPresetRow)
+
+  const connectionRetrying = reconnectingSession || connection.phase === 'connecting' || connection.phase === 'reconnecting'
+  const connected = connection.phase === 'connected' && !reconnectingSession
+  const hasActiveChatItem = visibleMessages.some(isActiveChatItem)
+  const canStop = connected && (busy === 'send-message' || busy === 'stop-session' || session.running || hasActiveChatItem)
+  const stopping = busy === 'stop-session'
+  const replyActive = busy === 'send-message' || busy === 'stop-session' || session.running || hasActiveChatItem
+  const projectedPermissions = sessionPermissions(session)
+  const permissions = projectedPermissions === undefined ? undefined : { ...projectedPermissions, options: permissionOptions ?? projectedPermissions.options }
+  const currentPermission = permissions?.options.find(option => option.value === permissions.currentValue)
+  const currentModel = sessionModels?.groups
+    .find(group => group.id === sessionModels.current.provider)
+    ?.models.find(model => model.id === sessionModels.current.model)
+  const currentEffortId = sessionModels?.current.reasoningEffort ?? currentModel?.reasoning?.defaultEffort
+  const currentEffortName = currentModel?.reasoning?.efforts.find(effort => effort.id === currentEffortId)?.name
+    ?? currentEffortId
+  const currentModelName = currentModel?.name ?? sessionModels?.current.model
+  const currentModelLabel = currentEffortName === undefined
+    ? currentModelName
+    : `${currentModelName} · ${currentEffortName}`
+
+  const pickMode = async (preset: string) => {
+    setModePickerOpen(false)
+    if (preset === session.agentPreset) return
+    const applied = await selectAgentPreset(preset)
+    if (!applied) {
+      Alert.alert(
+        zhCN.chat.modeLockedTitle,
+        session.blank ? zhCN.chat.modeSelectFailedBody : zhCN.chat.modeLockedBody,
+      )
+    }
+  }
+
+  const pickToolMode = (mode: 'files' | 'terminal') => {
+    setToolPickerOpen(false)
+    setFileLinkPath(undefined)
+    setToolsMode(mode)
+  }
+
+  const startNewSession = async () => {
+    if (newSessionPending || busy !== undefined) return
+    setNewSessionPending(true)
+    try {
+      const created = await createSession(currentWorkspace?.workspaceId)
+      if (created) {
+        onNewSession?.()
+      } else {
+        Alert.alert(zhCN.chat.newChatFailedTitle, zhCN.chat.newChatFailedBody)
+      }
+    } finally {
+      setNewSessionPending(false)
+    }
+  }
+
+  const sendPrompt = async (prompt: CustomPrompt) => {
+    setPromptsPickerOpen(false)
+    const outcome = await sendMessage(prompt.text)
+    if (outcome === 'sent') AccessibilityInfo.announceForAccessibility(zhCN.chat.toolPromptSent(prompt.title))
+    else if (outcome === 'rejected') Alert.alert(zhCN.chat.toolPromptSendFailed, zhCN.chat.toolPromptSendFailed)
+  }
+
+  const persistPrompts = async (next: readonly CustomPrompt[]): Promise<boolean> => {
+    if (promptsLoading) return false
+    promptMutatedRef.current = true
+    const previous = customPrompts ?? BUILT_IN_PROMPTS
+    setCustomPrompts(next)
+    // Built-ins are re-seeded on every load, so a deleted one only stays gone
+    // when its id is recorded; edited built-ins keep their id and are saved as
+    // overrides inside `next`.
+    const removed = BUILT_IN_PROMPTS
+      .filter(item => !next.some(prompt => prompt.id === item.id))
+      .map(item => item.id)
+    try {
+      await saveCustomPrompts(next, removed)
+      return true
+    } catch {
+      setCustomPrompts(previous)
+      Alert.alert(zhCN.chat.toolPromptSaveFailedTitle, zhCN.chat.toolPromptSaveFailedBody)
+      return false
+    }
+  }
+
+  const savePromptEdit = async (title: string, text: string) => {
+    if (promptsLoading) return
+    const editing = promptEditing
+    const trimmedTitle = title.trim()
+    const trimmedText = text.trim()
+    if (trimmedTitle === '' || trimmedText === '') return
+    const current = customPrompts ?? BUILT_IN_PROMPTS
+    let ok = false
+    if (editing === 'new') {
+      ok = await persistPrompts([...current, { id: `prompt-${Date.now()}`, title: trimmedTitle, text: trimmedText }])
+    } else if (editing !== null) {
+      ok = await persistPrompts(current.map(item => item.id === editing.id ? { ...item, title: trimmedTitle, text: trimmedText } : item))
+    }
+    if (ok) {
+      setPromptEditing(null)
+      setPromptsManagerOpen(true)
+    }
+  }
+
+  const deletePrompt = async (prompt: CustomPrompt) => {
+    if (promptsLoading) return
+    const current = customPrompts ?? BUILT_IN_PROMPTS
+    await persistPrompts(current.filter(item => item.id !== prompt.id))
+  }
+
+  const sessionBlank = visibleMessages.length === 0 && session.blank !== false
+
+  const moveSessionToWorkspace = async (workspace: WorkspaceView) => {
+    const previousId = session.sessionId
+    const opened = await createSession(workspace.workspaceId)
+    if (!opened) {
+      Alert.alert(zhCN.chat.moveFailedTitle, zhCN.chat.moveFailedBody)
+      return
+    }
+    // A blank conversation carries nothing to lose: recreate it inside the
+    // chosen workspace and archive the old placeholder so it reads as a move.
+    if (sessionBlank) await archiveSession(previousId)
+  }
+
+  const pickWorkspace = (workspace: WorkspaceView) => {
+    setWorkspacePickerOpen(false)
+    if (workspace.sessionIds.includes(session.sessionId)) return
+    if (sessionBlank) {
+      void moveSessionToWorkspace(workspace)
+      return
+    }
+    Alert.alert(
+      zhCN.chat.moveStartedTitle,
+      zhCN.chat.moveStartedBody(workspace.title),
+      [
+        { text: zhCN.common.cancel, style: 'cancel' },
+        { text: zhCN.chat.moveStartedConfirm, onPress: () => void moveSessionToWorkspace(workspace) },
+      ],
+    )
+  }
+
+  const pickPermission = (preset: string) => {
+    setPermissionPickerOpen(false)
+    const apply = () => void selectPermission(preset)
+    if (preset === 'danger-full-access') {
+      Alert.alert(
+        session.backend === 'codex' ? zhCN.chat.codexFullAccessTitle : zhCN.chat.fullAccessTitle,
+        session.backend === 'codex' ? zhCN.chat.codexFullAccessBody : zhCN.chat.fullAccessBody,
+        [
+          { text: zhCN.common.cancel, style: 'cancel' },
+          { text: zhCN.chat.enable, style: 'destructive', onPress: apply },
+        ],
+      )
+    } else apply()
+  }
+
+  const applyDraft = (next: string) => {
+    draftRef.current = next
+    setDraft(next)
+  }
+
+  const closeMention = () => setMentionType(null)
+
+  const updateMention = (text: string, cursor: number) => {
+    const detected = detectMention(text, cursor)
+    if (detected === undefined) {
+      setMentionType(null)
+      return
+    }
+    mentionSpanRef.current = detected.start
+    setMentionQuery(detected.query)
+    setMentionType(detected.type)
+  }
+
+  /** Insert the picked command or reference text at the trigger span, keeping the caret behind it (web composer grammar). */
+  const insertMentionText = (text: string) => {
+    const start = mentionSpanRef.current
+    const end = selectionRef.current.end
+    const current = draftRef.current
+    const next = current.slice(0, start) + text + current.slice(end)
+    const cursor = start + text.length
+    applyDraft(next)
+    selectionRef.current = { start: cursor, end: cursor }
+    setSelection({ start: cursor, end: cursor })
+    setMentionType(null)
+    composerInputRef.current?.focus()
+  }
+
+  const onChangeText = (next: string) => {
+    if (next === draftRef.current) return
+    // Keep the tracked caret in step with the edit so the controlled selection
+    // never yanks the cursor; onSelectionChange refines it right afterwards.
+    const delta = next.length - draftRef.current.length
+    applyDraft(next)
+    const cursor = Math.max(0, Math.min(next.length, selectionRef.current.end + delta))
+    selectionRef.current = { start: cursor, end: cursor }
+    setSelection({ start: cursor, end: cursor })
+    updateMention(next, cursor)
+  }
+
+  const onSelectionChange = (event: { nativeEvent: { selection: { start: number; end: number } } }) => {
+    const next = event.nativeEvent.selection
+    if (next.start === selectionRef.current.start && next.end === selectionRef.current.end) return
+    selectionRef.current = next
+    setSelection(next)
+    if (next.start === next.end) updateMention(draftRef.current, next.end)
+  }
+
+  const runSessionExport = () => {
+    setMentionType(null)
+    const sessionId = session.sessionId
+    void Promise.resolve().then(() => requireSessionTools().executeCommand(sessionId, '/export'))
+      .then(result => {
+        Alert.alert(zhCN.mention.exportTitle, result.text ?? (result.kind === 'success' ? zhCN.mention.exportTriggered : zhCN.mention.exportFailed))
+      })
+      .catch((error: unknown) => {
+        Alert.alert(zhCN.mention.exportTitle, error instanceof Error && error.message.length > 0 ? error.message : zhCN.mention.exportFailed)
+      })
+  }
+
+  // 「/」菜单：添加 / 指令 / 技能 三组，动作按 DeepSeek Harness Web 端绑定。
+  const commandAddItems: MentionItem[] = [
+    { id: 'file', icon: OfficialMenuIcons.file, title: zhCN.mention.file, description: zhCN.mention.fileDescription, onPress: () => insertMentionText('/file ') },
+    { id: 'goal', icon: OfficialMenuIcons.goal, title: zhCN.mention.goal, description: zhCN.mention.goalDescription, onPress: () => insertMentionText('/goal ') },
+    { id: 'plan', icon: OfficialMenuIcons.plan, title: zhCN.mention.plan, description: zhCN.mention.planDescription, onPress: () => insertMentionText('/plan ') },
+    { id: 'feedback', icon: OfficialMenuIcons.feedback, title: zhCN.mention.feedback, description: zhCN.mention.feedbackDescription, onPress: () => insertMentionText('/feedback ') },
+  ]
+  const commandControlItems: MentionItem[] = [
+    { id: 'compact', icon: OfficialMenuIcons.compact, title: zhCN.mention.compact, description: zhCN.mention.compactDescription, onPress: () => insertMentionText('/compact') },
+    { id: 'permission', icon: OfficialMenuIcons.permission, title: zhCN.mention.permission, description: zhCN.mention.permissionDescription, onPress: () => { setMentionType(null); setPermissionPickerOpen(true) } },
+    { id: 'model', icon: OfficialMenuIcons.model, title: zhCN.mention.model, description: zhCN.mention.modelDescription, onPress: () => { setMentionType(null); setModelPickerOpen(true) } },
+    { id: 'export', icon: OfficialMenuIcons.export, title: zhCN.mention.export, description: zhCN.mention.exportDescription, onPress: runSessionExport },
+  ]
+  const mentionTexts = (item: MentionItem) => [item.title, item.description ?? '', item.meta ?? '']
+  const mentionGroups: MentionGroup[] = mentionType === 'command'
+    ? [
+        { key: 'add', title: zhCN.mention.addSection, items: filterByQuery(commandAddItems, mentionQuery, mentionTexts).slice(0, 20) },
+        { key: 'commands', title: zhCN.mention.commandSection, items: filterByQuery(commandControlItems, mentionQuery, mentionTexts).slice(0, 20) },
+        {
+          key: 'skills',
+          title: zhCN.mention.skillSection,
+          items: skillCatalog === undefined && skillCatalogFailed
+            ? []
+            : filterByQuery(skillItems, mentionQuery, mentionTexts).slice(0, 20),
+        },
+      ]
+    : mentionType === 'context'
+      ? [
+          { key: 'sessions', title: zhCN.mention.sessionSection, items: filterByQuery(sessionItems, mentionQuery, mentionTexts).slice(0, 20) },
+          {
+            key: 'files',
+            title: zhCN.mention.fileSection,
+            items: fileListFailed ? [] : filterByQuery(fileItems, mentionQuery, mentionTexts).slice(0, 30),
+          },
+        ]
+      : []
+  const header = <>
+      <TopBar
+        title={sessionTitle(session)}
+        onTitlePress={() => { Keyboard.dismiss(); setMentionType(null); setSessionInfoOpen(true) }}
+        titleLines={1}
+        onBack={trajectory ? handleBack : tabletSplit ? backFromChat : () => { Keyboard.dismiss(); setMentionType(null); setSessionsOpen(true) }}
+        backIcon={trajectory || tabletSplit ? ArrowLeft : Menu}
+        backLabel={trajectory || tabletSplit ? zhCN.common.back : zhCN.chat.openHostSessions}
+        action={<>
+          <IconButton label={trajectory ? zhCN.trajectory.close : zhCN.trajectory.open}
+            icon={trajectory ? MessageSquare : ListTree} dense tint={trajectory ? colors.primary : undefined}
+            onPress={() => { Keyboard.dismiss(); setMentionType(null); setTrajectory(value => !value) }} />
+          {childSessions.length > 0 && (
+            <IconButton label={zhCN.chat.subagentsTitle(childSessions.length)}
+              icon={Layers} dense tint={childSessions.some(item => item.running) ? colors.primary : undefined}
+              onPress={() => { Keyboard.dismiss(); setMentionType(null); setSubagentsOpen(true) }} />
+          )}
+          {teamState !== undefined && teamState.members.length > 0 && (
+            <IconButton label={zhCN.chat.teamTitle(teamState.members.length)}
+              icon={Users} dense tint={teamState.members.some(item =>
+                item.phase === 'active' && sessions.find(row => row.sessionId === item.id)?.running === true) ? colors.primary : undefined}
+              onPress={() => { Keyboard.dismiss(); setMentionType(null); setTeamOpen(true) }} />
+          )}
+          <IconButton label={zhCN.chat.newChat} icon={OfficialMenuIcons.newChat} dense onPress={() => void startNewSession()} disabled={newSessionPending || busy !== undefined} />
+          {!connected && <IconButton label={zhCN.chat.reconnect} icon={RefreshCw} dense onPress={() => void reconnectCurrentSession()} disabled={connectionRetrying} />}
+        </>}
+      />
+      {!connected && (
+        <View style={styles.connectionBanner} accessibilityRole="alert">
+          <View style={styles.connectionDot} />
+          <Text style={styles.connectionBannerText}>{connectionRetrying ? zhCN.chat.reconnecting : zhCN.chat.offline}</Text>
+        </View>
+      )}
+    </>
+  return (
+    <MarkdownLinkProvider onLinkPress={openFileLink}><KeyboardInset>
+      <View style={[styles.splitRoot, tabletSplit && styles.splitRootWide]}>
+        {tabletSplit && (
+          <View style={styles.splitSidebar}>
+            <HostSessionsDrawer
+              inline
+              onBack={() => Keyboard.dismiss()}
+              onClose={() => Keyboard.dismiss()}
+              onSelect={async next => {
+                if (await openSession(next)) {
+                  applyDraft('')
+                  setImages([])
+                }
+              }}
+            />
+          </View>
+        )}
+        <View style={styles.splitMain}>
+      {/* Messages scroll beneath the frosted header; the trajectory view keeps its own fixed search bar below it. */}
+      <BlurHeaderFrame header={header} inset={trajectory}>{headerHeight => trajectory ? <ChatTrajectory key={session.sessionId} items={messages} renderImages={images => <ChatImages images={images} />} hasMore={historyHasMore} loading={historyLoadingOlder} loadOlder={() => void loadOlderHistory()} renderItem={item => <ChatItemView item={item} compact={false} busyAction={busy} onApproval={respondApproval} onQuestion={respondQuestion} />} /> : <FlatList
+        ref={listRef}
+        key={session.sessionId}
+        style={[styles.list, readableColumn]}
+        contentContainerStyle={[styles.listContent, { paddingTop: headerHeight + spacing.xl }, visibleMessages.length === 0 && styles.emptyList]}
+        data={visibleSections}
+        keyExtractor={item => item.key}
+        renderItem={renderChatItem}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        updateCellsBatchingPeriod={16}
+        windowSize={7}
+        removeClippedSubviews
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onLayout={onListLayout}
+        onScroll={onListScroll}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          initialPinRef.current = false
+          Keyboard.dismiss()
+        }}
+        ListEmptyComponent={busy === `session:${session.sessionId}`
+          ? <View style={{ padding: spacing.xl }}><ActivityIndicator size="large" color={colors.primary} /></View>
+          : <WelcomeMessage />}
+        ListHeaderComponent={historyHasMore ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={zhCN.chat.older}
+            disabled={historyLoadingOlder}
+            onPress={() => void loadOlderHistory()}
+            style={styles.olderButton}
+          >
+            {historyLoadingOlder
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Text style={styles.olderText}>{zhCN.chat.older}</Text>}
+          </Pressable>
+        ) : undefined}
+      />}</BlurHeaderFrame>
+
+      {mentionType !== null && (
+        <Pressable
+          style={styles.mentionBackdrop}
+          onPress={() => { closeMention(); Keyboard.dismiss() }}
+          accessibilityRole="button"
+          accessibilityLabel={zhCN.common.close}
+        />
+      )}
+      <View style={styles.composerWrap}>
+        <View style={[styles.composerInner, readableColumn]}>
+        {queueItems.length > 0 && <QueueDock items={queueItems} />}
+
+        {images.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={styles.imageTray}>
+            {images.map((image, index) => (
+              <View key={`${image.uri}:${index}`} style={styles.imagePreviewWrap}>
+                <Image source={{ uri: image.uri }} style={styles.imagePreview} resizeMode="cover" />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={zhCN.chat.removeImage(image.name ?? `${index + 1}`)}
+                  onPress={() => setImages(current => current.filter((_, imageIndex) => imageIndex !== index))}
+                  style={styles.removeImageButton}
+                >
+                  <X size={13} color={colors.white} />
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {replyActive && (
+          <View
+            accessible
+            accessibilityLabel={stopping ? zhCN.chat.stopping : session.backend === 'codex' ? zhCN.chat.codexGenerating : session.backend === 'cursor' ? zhCN.chat.cursorGenerating : session.backend === 'claude' ? zhCN.chat.claudeGenerating : session.backend === 'opencode' ? zhCN.chat.opencodeGenerating : session.backend === 'pi' ? zhCN.chat.piGenerating : session.backend === 'antigravity' ? zhCN.chat.antigravityGenerating : zhCN.chat.generating}
+            accessibilityLiveRegion="polite"
+            style={styles.replyStatus}
+          >
+            <Svg width={18} height={18} viewBox={`0 0 ${FISH_LOGO_VIEWBOX.width} ${FISH_LOGO_VIEWBOX.height}`} accessible={false}><Path d={FISH_LOGO_PATH} fill={colors.accent} /></Svg>
+            <Text style={styles.replyStatusText}>{stopping ? zhCN.chat.stopping : session.backend === 'codex' ? zhCN.chat.codexGenerating : session.backend === 'cursor' ? zhCN.chat.cursorGenerating : session.backend === 'claude' ? zhCN.chat.claudeGenerating : session.backend === 'opencode' ? zhCN.chat.opencodeGenerating : session.backend === 'pi' ? zhCN.chat.piGenerating : session.backend === 'antigravity' ? zhCN.chat.antigravityGenerating : zhCN.chat.generating}</Text>
+            {!stopping && <ReplyStatusDots />}
+          </View>
+        )}
+        <View style={{ position: 'relative', zIndex: 20, elevation: 20 }}>
+          {mentionType !== null && (
+            <MentionPopover groups={mentionGroups} onDismiss={closeMention} emptyText={zhCN.mention.noMatches} />
+          )}
+        <View style={styles.composerCard}>
+          <View style={styles.composerInputWrap}>
+            {/* Native attributed text keeps references blue without an opaque Android value layer. */}
+            <TextInput
+              ref={composerInputRef}
+              accessibilityLabel={session.backend === 'codex'
+                ? zhCN.chat.codexMessageLabel
+                : session.backend === 'cursor'
+                  ? zhCN.chat.cursorMessageLabel
+                  : session.backend === 'claude' ? zhCN.chat.claudeMessageLabel : session.backend === 'opencode' ? zhCN.chat.opencodeMessageLabel : session.backend === 'pi' ? zhCN.chat.piMessageLabel : session.backend === 'antigravity'
+                    ? zhCN.chat.antigravityMessageLabel
+                    : zhCN.chat.messageLabel}
+              style={[styles.composerInput, compactComposer && { maxHeight: composerInputMaxHeight }]}
+              onChangeText={onChangeText}
+              onSelectionChange={onSelectionChange}
+
+              selection={selection}
+              placeholder={session.backend === 'codex'
+                ? zhCN.chat.codexPlaceholder
+                : session.backend === 'cursor'
+                  ? zhCN.chat.cursorPlaceholder
+                  : session.backend === 'claude' ? zhCN.chat.claudePlaceholder : session.backend === 'opencode' ? zhCN.chat.opencodePlaceholder : session.backend === 'pi' ? zhCN.chat.piPlaceholder : session.backend === 'antigravity'
+                    ? zhCN.chat.antigravityPlaceholder
+                    : zhCN.chat.placeholder}
+              placeholderTextColor={colors.muted}
+              multiline
+              editable={connected && !permissionSelecting}
+              selectionColor={colors.accent}
+              cursorColor={colors.accent}
+            >
+              <Text>{draftSegments.map((segment, index) => <Text key={index} style={{ color: segment.token ? colors.primary : colors.ink }}>{segment.text}</Text>)}</Text>
+            </TextInput>
+          </View>
+          <View style={styles.composerControls}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={zhCN.chat.moreActions}
+              accessibilityState={{ disabled: !connected || permissionSelecting }}
+              disabled={!connected || permissionSelecting}
+              onPress={openPlusMenu}
+              hitSlop={8}
+              style={({ pressed }) => [styles.plusButton, pressed && styles.plusPressed, (!connected || permissionSelecting) && styles.plusDisabled]}
+            >
+              <Plus size={20} color={connected ? colors.ink : colors.disabled} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={zhCN.chat.quickPrompts}
+              accessibilityState={{ disabled: !connected || permissionSelecting, expanded: promptsPickerOpen }}
+              disabled={!connected || permissionSelecting}
+              onPress={openPromptsPicker}
+              hitSlop={{ top: 8, bottom: 8 }}
+              style={({ pressed }) => [styles.quickPromptsButton, pressed && styles.plusPressed, (!connected || permissionSelecting) && styles.plusDisabled]}
+            >
+              <Text style={styles.quickPromptsText} numberOfLines={1}>{zhCN.chat.quickPrompts}</Text>
+            </Pressable>
+            <View style={styles.composerSpacer} />
+            {sessionModels !== undefined && (
+              <Pressable accessibilityRole="button" accessibilityLabel={zhCN.chat.selectModel} onPress={() => setModelPickerOpen(true)} style={styles.modelChip}>
+                <Sparkles size={14} color={colors.primary} />
+                <Text style={styles.modelChipText} numberOfLines={1}>{currentModelLabel}</Text>
+                {modelSelecting ? <ActivityIndicator size="small" color={colors.muted} /> : <ChevronDown size={14} color={colors.muted} />}
+              </Pressable>
+            )}
+            {canStop && draft.trim().length === 0 && images.length === 0
+              ? <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={zhCN.chat.stop}
+                  accessibilityState={{ disabled: stopping, busy: stopping }}
+                  disabled={stopping}
+                  onPress={() => void stopSession()}
+                  style={({ pressed }) => [styles.stopButton, pressed && !stopping && styles.stopPressed, stopping && styles.sendDisabled]}
+                >
+                  {stopping
+                    ? <ActivityIndicator size="small" color={colors.white} />
+                    : <CircleStop size={20} color={colors.white} />}
+                </Pressable>
+              : <>
+                {/* With text in the composer the primary action is the send
+                    (queueing) button — tapping where Send lives must never stop
+                    the running task (official InputBar behaviour). Stop stays
+                    available as its own secondary button. */}
+                {canStop && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={zhCN.chat.stop}
+                    accessibilityState={{ disabled: stopping, busy: stopping }}
+                    disabled={stopping}
+                    onPress={() => void stopSession()}
+                    style={({ pressed }) => [styles.stopButtonSmall, pressed && !stopping && styles.stopPressed, stopping && styles.sendDisabled]}
+                  >
+                    {stopping
+                      ? <ActivityIndicator size="small" color={colors.white} />
+                      : <CircleStop size={17} color={colors.white} />}
+                  </Pressable>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={zhCN.chat.send}
+                  accessibilityState={{ disabled: !connected || permissionSelecting || (draft.trim().length === 0 && images.length === 0) }}
+                  disabled={!connected || permissionSelecting || (draft.trim().length === 0 && images.length === 0)}
+                  onPress={() => void submit()}
+                  style={({ pressed }) => [styles.sendButton, pressed && styles.sendPressed, (!connected || permissionSelecting || (draft.trim().length === 0 && images.length === 0)) && styles.sendDisabled]}
+                >
+                  <ArrowUp size={20} color={colors.white} />
+                </Pressable>
+                </>}
+          </View>
+        </View>
+        </View>
+        {draft.length > LONG_DRAFT_HINT && (
+          <Text style={styles.composerHint}>{zhCN.chat.draftLong(draft.length)}</Text>
+        )}
+        {/* Landscape phones leave almost no space above the IME once the
+            composer is visible; keep the privacy note for roomier windows. */}
+        {!compactComposer && (
+          <Text style={styles.composerHint}>
+            {session.backend === 'codex'
+              ? zhCN.chat.codexPolicyHint
+              : session.backend === 'cursor'
+                ? zhCN.chat.cursorPolicyHint
+                : session.backend === 'claude' ? zhCN.chat.claudePolicyHint : session.backend === 'opencode' ? zhCN.chat.opencodePolicyHint : session.backend === 'pi' ? zhCN.chat.piPolicyHint : session.backend === 'antigravity'
+                  ? zhCN.chat.antigravityPolicyHint
+                  : zhCN.chat.policyHint}
+          </Text>
+        )}
+        </View>
+      </View>
+        </View>
+      </View>
+
+      <Modal visible={plusMenuOpen} transparent animationType="fade" onRequestClose={closePlusMenu} statusBarTranslucent>
+        <ModalSurface onClose={closePlusMenu}>
+            <View style={styles.modalHeader}><Text style={styles.modalTitle}>{zhCN.chat.moreActions}</Text><IconButton label={zhCN.common.close} icon={X} onPress={closePlusMenu} /></View>
+            <ScrollView
+              style={{ maxHeight: plusMenuListMaxHeight }}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+            {sessionImageLimits(session) !== undefined && (
+              <View style={styles.plusCardRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={zhCN.chat.takePhoto}
+                  accessibilityState={{ disabled: pickingImages }}
+                  disabled={pickingImages}
+                  onPress={() => { closePlusMenu(); void takePhoto() }}
+                  style={({ pressed }) => [styles.plusCard, pressed && styles.plusMenuOptionPressed, pickingImages && styles.plusMenuOptionDisabled]}
+                >
+                  <Camera size={22} color={colors.primary} />
+                  <Text style={styles.plusCardText}>{zhCN.chat.takePhoto}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={zhCN.chat.photos}
+                  accessibilityState={{ disabled: pickingImages }}
+                  disabled={pickingImages}
+                  onPress={() => { closePlusMenu(); void pickImages() }}
+                  style={({ pressed }) => [styles.plusCard, pressed && styles.plusMenuOptionPressed, pickingImages && styles.plusMenuOptionDisabled]}
+                >
+                  <Images size={22} color={colors.primary} />
+                  <Text style={styles.plusCardText}>{zhCN.chat.photos}</Text>
+                </Pressable>
+              </View>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={zhCN.chat.openWorkspaces}
+              onPress={() => { closePlusMenu(); setWorkspacePickerOpen(true) }}
+              style={({ pressed }) => [styles.plusMenuOption, pressed && styles.plusMenuOptionPressed]}
+            >
+              <Folder size={20} color={colors.primary} />
+              <Text style={styles.plusMenuOptionText}>{zhCN.chat.openWorkspaces}</Text>
+              <View style={styles.plusMenuOptionValue}>
+                <Text style={styles.plusMenuOptionValueText} numberOfLines={1}>{workspaceLabel}</Text>
+                <ChevronRight size={16} color={colors.muted} />
+              </View>
+            </Pressable>
+            {session.backend !== 'codex' && session.backend !== 'cursor' && session.backend !== 'antigravity' && session.backend !== 'pi' && session.backend !== 'opencode' && session.backend !== 'claude' && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={zhCN.chat.selectMode}
+                accessibilityState={{ disabled: agentPresetSelecting }}
+                disabled={agentPresetSelecting}
+                onPress={() => { closePlusMenu(); setModePickerOpen(true) }}
+                style={({ pressed }) => [styles.plusMenuOption, pressed && styles.plusMenuOptionPressed, agentPresetSelecting && styles.plusMenuOptionDisabled]}
+              >
+                <Layers size={20} color={colors.primary} />
+                <Text style={styles.plusMenuOptionText}>{zhCN.chat.mode}</Text>
+                <View style={styles.plusMenuOptionValue}>
+                  {agentPresetSelecting
+                    ? <ActivityIndicator size="small" color={colors.muted} />
+                    : <Text style={styles.plusMenuOptionValueText} numberOfLines={1}>{modeLabel}</Text>}
+                  <ChevronRight size={16} color={colors.muted} />
+                </View>
+              </Pressable>
+            )}
+            {connected && session.backend !== 'claude' && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={zhCN.chat.toolAccess}
+                onPress={() => { closePlusMenu(); setToolPickerOpen(true) }}
+                style={({ pressed }) => [styles.plusMenuOption, pressed && styles.plusMenuOptionPressed]}
+              >
+                <Terminal size={20} color={colors.primary} />
+                <Text style={styles.plusMenuOptionText}>{zhCN.chat.toolAccess}</Text>
+                <ChevronRight size={16} color={colors.muted} />
+              </Pressable>
+            )}
+            {permissions !== undefined && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={zhCN.chat.approvalMode}
+                accessibilityState={{ disabled: permissionSelecting || canStop }}
+                disabled={permissionSelecting || canStop}
+                onPress={() => { closePlusMenu(); setPermissionPickerOpen(true) }}
+                style={({ pressed }) => [styles.plusMenuOption, pressed && styles.plusMenuOptionPressed, (permissionSelecting || canStop) && styles.plusMenuOptionDisabled]}
+              >
+                <ShieldAlert size={20} color={colors.primary} />
+                <Text style={styles.plusMenuOptionText}>{zhCN.chat.approvalMode}</Text>
+                <View style={styles.plusMenuOptionValue}>
+                  {permissionSelecting
+                    ? <ActivityIndicator size="small" color={colors.muted} />
+                    : <Text style={styles.plusMenuOptionValueText} numberOfLines={1}>{permissionDisplayName(permissions.currentValue, currentPermission?.name)}</Text>}
+                  <ChevronRight size={16} color={colors.muted} />
+                </View>
+              </Pressable>
+            )}
+            </ScrollView>
+        </ModalSurface>
+      </Modal>
+
+      <ModelPicker
+        visible={modelPickerOpen}
+        models={sessionModels}
+        onClose={() => setModelPickerOpen(false)}
+        onPick={pickModel}
+      />
+      {toolsMode !== undefined && connected && (
+        <SessionToolsPanel
+          key={`${session.sessionId}:${toolsMode}:${fileLinkPath ?? ''}`}
+          mode={toolsMode}
+          sessionId={session.sessionId}
+          initialFile={toolsMode === 'files' ? fileLinkPath : undefined}
+          onClose={() => { setToolsMode(undefined); setFileLinkPath(undefined) }}
+        />
+      )}
+      <PermissionPicker loading={permissionLoading} error={permissionError} onRetry={() => setPermissionRevision(v => v + 1)} visible={permissionPickerOpen} permissions={permissions} onClose={() => setPermissionPickerOpen(false)} onPick={pickPermission} />
+      <ModePicker visible={modePickerOpen} options={agentPresetOptions} current={currentAgentPresetId} loading={agentPresetLoading} selecting={agentPresetSelecting} onClose={() => setModePickerOpen(false)} onPick={pickMode} />
+      <ChildAgentPanel visible={subagentsOpen} sessions={childSessions} onClose={() => setSubagentsOpen(false)}
+        onOpen={session => { setSubagentsOpen(false); void openSession(session) }} />
+      <TeamAgentPanel visible={teamOpen} members={teamState?.members ?? []} tasks={teamState?.tasks ?? []}
+        sessions={sessions} onClose={() => setTeamOpen(false)}
+        onOpen={session => { setTeamOpen(false); void openSession(session) }} />
+      {sessionInfoOpen && <SessionInfo
+        key={`${hostId}:${session.sessionId}`}
+        session={session}
+        workspace={currentWorkspace}
+        onClose={() => setSessionInfoOpen(false)}
+        onOpenWorkspace={() => {
+          setSessionInfoOpen(false)
+          if (onOpenWorkspaces !== undefined) onOpenWorkspaces(currentWorkspace === undefined ? undefined : workspaceStableKey(currentWorkspace, hostPlatform))
+          else onBack()
+        }}
+      />}
+      {sessionsOpen && !tabletSplit && <HostSessionsDrawer
+        onBack={() => {
+          Keyboard.dismiss()
+          setSessionsOpen(false)
+          onOpenDevices()
+        }}
+        onClose={() => setSessionsOpen(false)}
+        onSelect={async next => {
+          if (await openSession(next)) {
+            applyDraft('')
+            setImages([])
+            setSessionsOpen(false)
+          }
+        }}
+      />}
+      <WorkspacePicker visible={workspacePickerOpen} workspaces={workspaces} currentSessionId={session.sessionId} sessionBackend={session.backend} busy={busy} onClose={() => setWorkspacePickerOpen(false)} onPick={pickWorkspace} onManage={onOpenWorkspaces} />
+      <ToolAccessPicker visible={toolPickerOpen} onClose={() => setToolPickerOpen(false)} onPick={pickToolMode} />
+      <PromptsPicker
+        visible={promptsPickerOpen}
+        prompts={customPrompts ?? BUILT_IN_PROMPTS}
+        onClose={() => setPromptsPickerOpen(false)}
+        onPick={prompt => void sendPrompt(prompt)}
+        onManage={() => { setPromptsPickerOpen(false); setPromptsManagerOpen(true) }}
+      />
+      <PromptsManager
+        visible={promptsManagerOpen}
+        prompts={customPrompts ?? BUILT_IN_PROMPTS}
+        promptsLoading={promptsLoading}
+        onBack={() => { setPromptsManagerOpen(false); setPromptsPickerOpen(true) }}
+        onClose={() => setPromptsManagerOpen(false)}
+        onAdd={() => { setPromptsManagerOpen(false); setPromptEditing('new') }}
+        onEdit={prompt => { setPromptsManagerOpen(false); setPromptEditing(prompt) }}
+        onDelete={prompt => {
+          Alert.alert(zhCN.chat.toolPromptDeleteTitle(prompt.title), zhCN.chat.toolPromptDeleteBody, [
+            { text: zhCN.common.cancel, style: 'cancel' },
+            { text: zhCN.common.delete, style: 'destructive', onPress: () => void deletePrompt(prompt) },
+          ])
+        }}
+      />
+      <PromptEditor
+        visible={promptEditing !== null}
+        prompt={promptEditing === 'new' || promptEditing === null ? undefined : promptEditing}
+        promptsLoading={promptsLoading}
+        onBack={() => { setPromptEditing(null); setPromptsManagerOpen(true) }}
+        onClose={() => setPromptEditing(null)}
+        onSave={(title, text) => void savePromptEdit(title, text)}
+      />
+    </KeyboardInset></MarkdownLinkProvider>
+  )
+}
+
+interface WorkspaceFileRef {
+  path: string
+  kind: 'file' | 'directory'
+}
+
+/** Shallow workspace tree for the `@` file menu: root entries plus one directory level. */
+async function loadWorkspaceFileRefs(sessionId: string): Promise<WorkspaceFileRef[]> {
+  const tools = requireSessionTools()
+  const refs: WorkspaceFileRef[] = []
+  const root = await tools.listFiles(sessionId, '')
+  const directories = root.entries.filter(entry => entry.type === 'directory' && !entry.name.startsWith('.'))
+  for (const entry of root.entries) {
+    if (entry.name.startsWith('.')) continue
+    refs.push({ path: entry.name, kind: entry.type === 'directory' ? 'directory' : 'file' })
+  }
+  await Promise.all(directories.slice(0, 12).map(async directory => {
+    try {
+      const listing = await tools.listFiles(sessionId, directory.name)
+      for (const entry of listing.entries) {
+        if (entry.name.startsWith('.')) continue
+        refs.push({ path: `${directory.name}/${entry.name}`, kind: entry.type === 'directory' ? 'directory' : 'file' })
+      }
+    } catch {
+      // Unreadable directories are simply absent from the menu.
+    }
+  }))
+  return refs
+}
+
+/** Resolve image dimensions for files that arrive without picker metadata (document picker). */
+function imageSize(uri: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    Image.getSize(uri, (width, height) => resolve({ width, height }), reject)
+  })
+}
+
+export { ModalSurface,usePickerListMaxHeight } from './chat/modal'

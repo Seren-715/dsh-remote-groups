@@ -1,0 +1,227 @@
+name: Test
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · Node ${{ matrix.node }} · DSH ${{ matrix.dsh }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, node: 24, dsh: 0.2.0-rc.2 }
+          - { os: windows-latest, node: 24, dsh: 0.2.0-rc.2 }
+          - { os: ubuntu-latest, node: 22, dsh: 0.2.0-rc.2 }
+          - { os: ubuntu-latest, node: 24, dsh: 0.2.1-alpha.1 }
+    defaults:
+      run:
+        shell: bash
+        working-directory: ds-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --no-fund --no-audit
+      - name: Install DSH ${{ matrix.dsh }}
+        run: npm run harness -- --no-save "@deepseek-ai/dsh@${{ matrix.dsh }}"
+      - run: npm test
+      - run: node scripts/build-client.mjs --check
+      - run: npm run lint
+
+  scan:
+    name: Leak scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Scan exactly the tracked files, as they would be published.
+      - run: mkdir -p "$RUNNER_TEMP/tree" && git archive HEAD | tar -x -C "$RUNNER_TEMP/tree"
+      - run: node scripts/scan.mjs "$RUNNER_TEMP/tree"
+        env:
+          SCAN_EXTRA_PATTERNS: ${{ secrets.SCAN_EXTRA_PATTERNS }}
+
+  app:
+    name: Desktop app profile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # The test composes the profile and starts no window, so it needs no Electron binary.
+      - run: npm ci --no-fund --no-audit
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - run: npm test
+
+  app-package:
+    name: Desktop app package (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --no-fund --no-audit
+      - run: npm run dist
+      - name: Check the packaged app
+        run: node scripts/check-packed.mjs
+      # The runner is a fresh machine, so the installer may run here. It must install for the
+      # current user only, the installed app must pass the same check, and the uninstaller must
+      # remove it again.
+      - name: Install and check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Find-Entry($root) {
+            Get-ChildItem "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
+              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'DeepSeek Bot*' }
+          }
+          $installer = Get-Item dist-pack/DeepSeek-Bot-*-win-x64.exe
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Bot'
+          $exe = Join-Path $dir 'DeepSeek Bot.exe'
+          if (-not (Test-Path $exe)) { throw "The installer did not put the app in $dir" }
+          $entry = Find-Entry 'HKCU:'
+          if (-not $entry) { throw 'No uninstall entry for the current user' }
+          if (Find-Entry 'HKLM:') { throw 'The installer installed for all users' }
+          node scripts/check-packed.mjs $exe
+          if ($LASTEXITCODE -ne 0) { throw 'The installed app failed its check' }
+
+      # The update builds the app a second time, so it runs only for changes to the app or the
+      # workflows. A build of the next version is the feed; the installed app downloads it, checks
+      # its sha512, and installs it as it quits.
+      - name: Does the change touch the app?
+        id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] || git diff --name-only "origin/$GITHUB_BASE_REF...HEAD" | grep -qE '^(app/|\.github/workflows/)'; then
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the next version
+        if: steps.scope.outputs.update == 'true'
+        run: |
+          next="$(node -p "const [a, b, c] = require('./package.json').version.split(/[.-]/u); [a, b, Number(c) + 1].join('.')")"
+          echo "NEXT_VERSION=$next" >> "$GITHUB_ENV"
+          npx electron-builder --publish never -c.extraMetadata.version="$next" -c.directories.output=dist-next
+      - name: Update the installed app and check it
+        if: steps.scope.outputs.update == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Bot\DeepSeek Bot.exe'
+          node scripts/check-update.mjs $exe dist-next
+          if ($LASTEXITCODE -ne 0) { throw 'The installed app did not take the update' }
+          # The installer goes on after the app has quit.
+          function Installed-Version {
+            Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+              ForEach-Object { Get-ItemProperty $_.PSPath } |
+              Where-Object { $_.DisplayName -like 'DeepSeek Bot*' } |
+              Select-Object -ExpandProperty DisplayVersion
+          }
+          $deadline = (Get-Date).AddSeconds(240)
+          while ((Installed-Version) -ne $env:NEXT_VERSION -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 3 }
+          if ((Installed-Version) -ne $env:NEXT_VERSION) { throw "The installed version is $(Installed-Version), not $env:NEXT_VERSION" }
+          while ((Get-Process | Where-Object { $_.Path -like '*deepseek-bot-updater*' }) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
+          node scripts/check-packed.mjs $exe
+          if ($LASTEXITCODE -ne 0) { throw 'The updated app failed its check' }
+
+      - name: Uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Find-Entry($root) {
+            Get-ChildItem "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
+              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'DeepSeek Bot*' }
+          }
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Bot'
+          $exe = Join-Path $dir 'DeepSeek Bot.exe'
+          # The uninstaller removes the program only: the data location and the app's own data stay.
+          $kept = foreach ($folder in (Join-Path $HOME '.ds-bot'), (Join-Path $env:APPDATA 'DeepSeek Bot')) {
+            New-Item -ItemType Directory -Force $folder | Out-Null
+            $file = Join-Path $folder 'kept.txt'
+            Set-Content $file 'kept'
+            $file
+          }
+          $uninstaller = Join-Path $dir 'Uninstall DeepSeek Bot.exe'
+          Start-Process -FilePath $uninstaller -ArgumentList '/currentuser', '/S' -Wait
+          # The uninstaller goes on from a copy in the temp folder, so wait for its result.
+          $deadline = (Get-Date).AddSeconds(120)
+          while (((Test-Path $exe) -or (Find-Entry 'HKCU:')) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
+          if (Test-Path $exe) { throw 'The uninstaller left the app in place' }
+          if (Find-Entry 'HKCU:') { throw 'The uninstaller left its uninstall entry' }
+          foreach ($file in $kept) { if (-not (Test-Path $file)) { throw "The uninstaller removed $file" } }
+
+  docker:
+    name: Docker startup and data migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test, scan]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: docker compose -f docker-compose.yml config --quiet
+      - run: docker compose -f docker/compose.yml config --quiet
+      - run: docker build -f docker/Dockerfile -t ds-bot:test .
+      - run: node docker/test.mjs ds-bot:test
+      - name: Publish the tested image
+        if: github.event_name == 'push' && github.repository == 'Fei2411/DeepSeek-Bot'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+          GHCR_REPOSITORY: ${{ github.repository }}
+          GHCR_BRANCH: ${{ github.ref_name }}
+          GHCR_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GHCR_REPOSITORY,,}"
+          case "$GHCR_BRANCH" in
+            main) tag=latest ;;
+            dev) tag=dev ;;
+            *) exit 0 ;;
+          esac
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+          docker tag ds-bot:test "$image:sha-$GHCR_SHA"
+          docker tag ds-bot:test "$image:$tag"
+          docker push "$image:sha-$GHCR_SHA"
+          docker push "$image:$tag"
+
+  # The one check that branch rules require. A job whose needs failed is skipped,
+  # and GitHub counts a skipped required check as passed, so this job always runs
+  # and fails unless the matrix, leak scan, app, app package and Docker checks passed.
+  result:
+    name: Test result
+    needs: [test, scan, app, app-package, docker]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.test.result }}" = success && test "${{ needs.scan.result }}" = success && test "${{ needs.app.result }}" = success && test "${{ needs.app-package.result }}" = success && test "${{ needs.docker.result }}" = success

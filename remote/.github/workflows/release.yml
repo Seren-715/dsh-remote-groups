@@ -1,0 +1,242 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: true
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9.15.4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - name: Validate version tag
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises'
+
+          const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
+          const root = await readJson('package.json')
+          const plugin = await readJson('packages/plugin/package.json')
+          const versions = new Set([root.version, plugin.version])
+          const expectedTag = `v${plugin.version}`
+
+          if (versions.size !== 1) {
+            throw new Error(`Release versions do not match: ${[...versions].join(', ')}`)
+          }
+          if (process.env.GITHUB_REF_NAME !== expectedTag) {
+            throw new Error(`Expected tag ${expectedTag}, received ${process.env.GITHUB_REF_NAME}`)
+          }
+          NODE
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        run: |
+          pnpm --filter './packages/**' -r build
+          pnpm -r check
+
+      - name: Run tests
+        run: pnpm -r test
+
+      - name: Build workspace
+        run: NODE_ENV=production pnpm -r build
+
+      - name: Pack npm plugin
+        run: |
+          mkdir -p release-assets
+          pnpm --dir packages/plugin pack --pack-destination "$GITHUB_WORKSPACE/release-assets"
+
+      - name: Stage release assets
+        run: |
+          cd release-assets
+          sha256sum *.tgz > SHA256SUMS.txt
+
+      - name: Build and package browser extension
+        run: |
+          NODE_ENV=production pnpm --dir apps/browser build
+          mkdir -p release-assets/browser-extension
+          cd apps/browser
+          zip -qr "$GITHUB_WORKSPACE/release-assets/dsh-remote-browser-${GITHUB_REF_NAME}.zip" \
+            manifest.json popup.html styles.css media dist
+
+      - name: Update release checksums
+        run: |
+          cd release-assets
+          sha256sum *.tgz *.zip > SHA256SUMS.txt
+
+      - name: Publish npm plugin
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_NAME="$(node -p "JSON.parse(require('fs').readFileSync('packages/plugin/package.json', 'utf8')).name")"
+          echo "Checking if version already exists on npm..."
+          if npm view "$PACKAGE_NAME"@"$VERSION" >/dev/null 2>&1; then
+            echo "Version already exists on npm, skip publish."
+          else
+            (cd packages/plugin && npm publish)
+          fi
+
+      - name: Publish GitHub Packages plugin
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_SCOPE="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          PACKAGE_NAME="@${PACKAGE_SCOPE}/ds-harness-remote"
+          NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/github-packages.npmrc"
+          export NPM_CONFIG_USERCONFIG PACKAGE_NAME
+
+          printf '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\n' > "$NPM_CONFIG_USERCONFIG"
+          printf '@%s:registry=https://npm.pkg.github.com\n' "$PACKAGE_SCOPE" >> "$NPM_CONFIG_USERCONFIG"
+
+          echo "Checking if version already exists on GitHub Packages..."
+          if npm view "$PACKAGE_NAME@$VERSION" --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "Version already exists on GitHub Packages, skip publish."
+            exit 0
+          fi
+
+          GITHUB_PACKAGE_DIR="$RUNNER_TEMP/github-package"
+          mkdir -p "$GITHUB_PACKAGE_DIR"
+          tar -xzf "release-assets/ds-harness-remote-$VERSION.tgz" -C "$GITHUB_PACKAGE_DIR"
+
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises'
+
+          const packageJsonPath = `${process.env.RUNNER_TEMP}/github-package/package/package.json`
+          const manifest = JSON.parse(await readFile(packageJsonPath, 'utf8'))
+          manifest.name = process.env.PACKAGE_NAME
+          manifest.publishConfig = {
+            ...(manifest.publishConfig ?? {}),
+            registry: 'https://npm.pkg.github.com',
+            provenance: false,
+          }
+          await writeFile(packageJsonPath, `${JSON.stringify(manifest, null, 2)}\n`)
+          NODE
+
+          npm publish "$GITHUB_PACKAGE_DIR/package" --registry=https://npm.pkg.github.com --access public
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          body_path: .github/release-notes.md
+          generate_release_notes: false
+
+  android-apk:
+    name: Build and attach Android APK
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9.15.4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm --filter './packages/**' -r build
+
+      - name: Check out Intelligent UI renderer source
+        uses: actions/checkout@v6
+        with:
+          repository: dreamfarer-space/deepseek-harness-intelligent-ui
+          # Pinned upstream PR #24 merge commit; update only after auditing the new artifact.
+          ref: bfb6b35f7ee94291629796d2b5eb577d20d8fa29
+          path: .deps/deepseek-harness-intelligent-ui
+
+      - name: Verify pinned Intelligent UI renderer
+        run: |
+          test "$(git -C .deps/deepseek-harness-intelligent-ui rev-parse HEAD)" = "bfb6b35f7ee94291629796d2b5eb577d20d8fa29" || { echo '::error::Unexpected renderer source commit'; exit 1; }
+          test "$(git -C .deps/deepseek-harness-intelligent-ui hash-object renderer/renderer.js)" = "b8cb5e17bf7e77f3c9ed374edc0f994f358beeac" || { echo '::error::Unexpected renderer file content'; exit 1; }
+
+      - name: Bundle local Android renderers
+        env:
+          DSH_INTELLIGENT_UI_RENDERER_BUNDLE: ${{ github.workspace }}/.deps/deepseek-harness-intelligent-ui/renderer/renderer.js
+          DSH_REQUIRE_INTELLIGENT_UI: 'true'
+        run: pnpm --dir apps/android run build:renderers
+
+      - name: Verify bundled Android renderers
+        env:
+          DSH_REQUIRE_INTELLIGENT_UI: 'true'
+        run: node apps/android/scripts/verify-intelligent-ui-renderer.mjs
+
+      - name: Generate Android project
+        run: pnpm --dir apps/android exec expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x apps/android/android/gradlew
+          apps/android/android/gradlew \
+            -p apps/android/android \
+            :app:assembleRelease \
+            --no-daemon \
+            --build-cache \
+            -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+
+      - name: Stage APK
+        run: |
+          mkdir -p artifacts/android
+          cp apps/android/android/app/build/outputs/apk/release/app-release.apk \
+            "artifacts/android/dsh-remote-android-${{ github.ref_name }}.apk"
+
+      - name: Attach APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: artifacts/android/dsh-remote-android-${{ github.ref_name }}.apk
+          fail_on_unmatched_files: true

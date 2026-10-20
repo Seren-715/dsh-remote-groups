@@ -1,0 +1,8 @@
+DS Bot
+Copyright 2026 Fei2411 and the DS Bot contributors
+Licensed under Apache License 2.0; see LICENSE.
+
+Source: https://github.com/Fei2411/DeepSeek-Bot
+characters.js and inks.js are copied from ds-bot/src/client without changes.
+fold.js contains the pure foldPreview and stripLongNote logic from ds-bot/src/client/fold.js; React DOM controls are omitted.
+Native Android adapters are in screens/group-display.tsx and group-display-text.ts.

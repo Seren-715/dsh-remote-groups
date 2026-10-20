@@ -1,0 +1,193 @@
+export type SessionFormatCompatibility = 'legacy-to-v3'
+
+export function normalizeLegacySessionGatewayValue(endpoint: string, value: unknown): unknown {
+  if (endpoint === 'session/page') return normalizePage(value)
+  if (endpoint === 'session/follow') return normalizeFollowFrame(value)
+  return value
+}
+
+export function normalizeAssistantMessageStreamValue(endpoint: string, value: unknown): unknown {
+  if (endpoint === 'session/page' && isRecord(value)) return { ...value, records: normalizeRecords(value.records) }
+  if (endpoint === 'session/follow' && isRecord(value) && value.type === 'snapshot') {
+    return { ...value, records: normalizeRecords(value.records) }
+  }
+  if (endpoint === 'session/follow') return normalizeEntry(value)
+  return value
+}
+
+function normalizeFollowFrame(value: unknown): unknown {
+  if (!isRecord(value)) return value
+  if (value.type === 'snapshot') {
+    return {
+      ...value,
+      header: normalizeHeader(value.header),
+      records: normalizeRecords(value.records),
+      ...(value.assistantStream === undefined ? { assistantStream: { revision: 0 } } : {}),
+    }
+  }
+  return normalizeEntry(value)
+}
+
+function normalizePage(value: unknown): unknown {
+  if (!isRecord(value)) return value
+  return { ...value, records: normalizeRecords(value.records) }
+}
+
+function normalizeRecords(value: unknown): unknown {
+  if (!Array.isArray(value)) return value
+  const records: unknown[] = []
+  let previousSeq: number | undefined
+  for (const record of value) {
+    if (!isEventEntry(record)) continue
+    const seq = entrySeq(record)
+    if (previousSeq !== undefined && seq !== undefined && seq > previousSeq + 1) {
+      for (let fillerSeq = previousSeq + 1; fillerSeq < seq; fillerSeq += 1) {
+        records.push(createLegacyGapRecord(fillerSeq, record))
+      }
+    }
+    records.push(normalizeEntry(record))
+    if (seq !== undefined) previousSeq = seq
+  }
+  return records
+}
+
+function normalizeEntry(value: unknown): unknown {
+  if (!isEventEntry(value)) return value
+  return { ...value, event: normalizeEvent(value.event) }
+}
+
+function entrySeq(value: unknown): number | undefined {
+  if (!isEventEntry(value)) return undefined
+  return isEventSeq(value.event.seq) ? value.event.seq : undefined
+}
+
+function createLegacyGapRecord(seq: number, nextRecord: unknown): unknown {
+  return {
+    type: 'event',
+    event: {
+      type: 'legacy/session-gap',
+      seq,
+      time: eventTime(nextRecord),
+      ignorable: true,
+      data: {},
+    },
+  }
+}
+
+function eventTime(value: unknown): number {
+  if (!isEventEntry(value)) return 0
+  return typeof value.event.time === 'number' && Number.isSafeInteger(value.event.time)
+    ? value.event.time
+    : 0
+}
+
+function isEventEntry(value: unknown): value is Record<string, unknown> & { event: Record<string, unknown> } {
+  return isRecord(value) && value.type === 'event' && isRecord(value.event)
+}
+
+function normalizeHeader(value: unknown): unknown {
+  if (!isRecord(value)) return value
+  const next: Record<string, unknown> = {
+    ...value,
+    version: 3,
+    ...(value.delegationDepth === undefined ? { delegationDepth: 0 } : {}),
+  }
+  return next.agentPreset === 'code' ? { ...next, agentPreset: 'ptc' } : next
+}
+
+function normalizeEvent(value: unknown): unknown {
+  if (!isRecord(value)) return value
+  let next: Record<string, unknown> = value
+  const type = normalizeEventType(value.type)
+  if (type !== value.type) next = { ...next, type }
+
+  if (type === 'assistant/message' && Object.hasOwn(next, 'sourceEventSeqs')) {
+    const { sourceEventSeqs: _sourceEventSeqs, ...rest } = next
+    next = rest
+  }
+
+  const data = normalizeEventData(type, next.data)
+  if (data !== next.data) next = { ...next, data }
+
+  const surfaceOp = normalizeSurfaceOp(next.surfaceOp)
+  if (surfaceOp !== next.surfaceOp) next = { ...next, surfaceOp }
+
+  return next
+}
+
+function normalizeEventType(value: unknown): unknown {
+  if (value === 'tool/code-dispatch-start') return 'tool/ptc-dispatch-start'
+  if (value === 'tool/code-dispatch') return 'tool/ptc-dispatch'
+  return value
+}
+
+function normalizeEventData(type: unknown, value: unknown): unknown {
+  if (!isRecord(value)) return value
+  if (type === 'assistant/message' && Object.hasOwn(value, 'stream') && !Array.isArray(value.stream)) {
+    const { stream: _stream, ...rest } = value
+    return rest
+  }
+  if (type === 'request/header') return normalizeRequestHeaderData(value)
+  if (type === 'agent-preset/selected' && value.agentPreset === 'code') return { ...value, agentPreset: 'ptc' }
+  if (type === 'user/message') return normalizeMessage(value)
+  if (type === 'agent/inbox/spliced' && Array.isArray(value.inserted)) {
+    return { ...value, inserted: value.inserted.map(item => normalizeMessage(item)) }
+  }
+  if (type === 'session/title-llm-request' && Array.isArray(value.messages)) {
+    return { ...value, messages: value.messages.map(item => normalizeMessage(item)) }
+  }
+  return value
+}
+
+function normalizeRequestHeaderData(value: Record<string, unknown>): unknown {
+  if (!isRecord(value.header)) return value
+  const header = normalizeRequestHeader(value.header)
+  return header === value.header ? value : { ...value, header }
+}
+
+function normalizeRequestHeader(value: Record<string, unknown>): Record<string, unknown> {
+  let changed = false
+  const next: Record<string, unknown> = {}
+  for (const [key, field] of Object.entries(value)) {
+    if (key === 'system') {
+      changed = true
+      continue
+    }
+    if (key === 'tools' && Array.isArray(field) && field.length === 0) {
+      changed = true
+      continue
+    }
+    if (key === 'adapterDefaults' && isRecord(field) && Object.keys(field).length === 0) {
+      changed = true
+      continue
+    }
+    next[key] = field
+  }
+  return changed ? next : value
+}
+
+function normalizeMessage(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.source)) return value
+  if (value.source.kind !== 'plugin' || value.source.plugin !== 'tools-code-mode') return value
+  return { ...value, source: { ...value.source, plugin: 'tools-ptc' } }
+}
+
+function normalizeSurfaceOp(value: unknown): unknown {
+  if (!isRecord(value) || value.op !== 'replace') return value
+  const { start, end, ...rest } = value
+  if (start === undefined && end === undefined) return value
+  return {
+    ...rest,
+    op: 'replace',
+    ...(start === undefined ? {} : { startSeq: start }),
+    ...(end === undefined ? {} : { endSeq: end }),
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isEventSeq(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0)
+}

@@ -1,0 +1,26 @@
+node_modules/
+*.tgz
+# The desktop app's window build (npm run build in app/), its packages (npm run pack, npm run dist)
+# and the next version that checks its update (see app/README.md).
+/app/ui/dist/
+/app/dist-pack/
+/app/dist-next/
+
+# A DeepSeek Harness checkout for the tests and the test bench.
+/deepseek-harness/
+
+# Test bench, local DSH data and the screenshots of dev/check.sh.
+.dsh-test*/
+.dsh-home/
+/shots/
+.playwright-mcp/
+
+# Extra patterns for scripts/scan.mjs that must not be named in the repository.
+.scan-extra
+
+# Local Docker deployment data.
+/docker/data/
+/docker/workspace/
+/docker/.env
+/.env
+/docker-compose.override.yml

@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "DSH Remote Groups",
+    "slug": "dsh-remote",
+    "scheme": ["dshremote", "dshremotegroups"],
+    "version": "0.5.13",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.github.liguobao.dshremote",
+      "buildNumber": "57"
+    },
+    "android": {
+      "package": "io.github.liguobao.dshremote.groups",
+      "versionCode": 60,
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground-adaptive.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "./plugins/with-remote-foreground-service",
+      "expo-file-system",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-brand.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F5F7"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "android": [
+              "en-US",
+              "zh-CN"
+            ]
+          }
+        }
+      ]
+    ]
+  }
+}
