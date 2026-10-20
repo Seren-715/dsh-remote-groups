@@ -38,6 +38,8 @@ The [illustrated guide](docs/USAGE.md) places screenshots next to the correspond
 
 Install DSH first. **Do not enable the full and companion distributions together.**
 
+The full distribution is now [published on npm](https://www.npmjs.com/package/dsh-remote-groups). Enter `dsh-remote-groups` directly in DSH’s Add plugin dialog. The default version is `0.1.0-preview.4`, still a preview. The companion remains a separate `.tgz` download.
+
 | Existing installation | Download | Result |
 | --- | --- | --- |
 | Neither upstream plugin installed | [Full plugin archive](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-0.1.0-preview.4.tgz) | Includes enhanced Remote and Bot; no separate upstream installation needed. |

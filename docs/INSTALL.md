@@ -14,6 +14,8 @@
 
 ## 新用户：完整版
 
+推荐在 DSH → 添加插件中直接输入 `dsh-remote-groups`，安装并启用后正常重启。完整版已发布到 [npm](https://www.npmjs.com/package/dsh-remote-groups)，当前默认版本 `0.1.0-preview.4`，仍属预览版；需要固定版本可填写 `dsh-remote-groups@0.1.0-preview.4`。也可以继续使用下方本地 `.tgz` 安装方式。
+
 在 DSH → 插件 → 添加插件中选择/填写完整包本地文件，安装并启用，然后正常退出并重启 DSH。包内已包含群聊 Host、桌面群聊、Remote Host 和 Remote 设置。无需另外下载 `ds-bot`、`ds-harness-remote` 或上游 APK。
 
 ## 已有上游：配套版

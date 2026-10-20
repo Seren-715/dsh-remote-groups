@@ -38,6 +38,8 @@
 
 先安装 DSH，再按电脑上的现状选择。**两种电脑包不能同时启用。**
 
+**完整版已发布到 npm**：在 DSH → 添加插件中直接填写 `dsh-remote-groups` 即可安装。当前默认版本为 `0.1.0-preview.4`，仍是预览版；[npm 包页面](https://www.npmjs.com/package/dsh-remote-groups)。配套版继续使用下方独立 `.tgz`。
+
 | 你的情况 | 电脑端下载 | 安装结果 |
 | --- | --- | --- |
 | 没有安装过两个上游插件 | [完整版 .tgz](https://github.com/Seren-715/dsh-remote-groups/releases/download/v0.1.0-preview.4/dsh-remote-groups-0.1.0-preview.4.tgz) | 一包包含 Remote 连接与增强群聊，无需另装上游 |
