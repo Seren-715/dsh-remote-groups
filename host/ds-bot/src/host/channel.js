@@ -6,6 +6,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { questionReply } from './parts.js'
 import { COLORS, EXTRA_COLORS, ROUTE } from './constants.js'
 import { importMobileFiles, readMobileAttachment } from './mobile-attachments.js'
+import { groupDisplayText } from './group-display.js'
 
 const LANGUAGES = { zh: 'Chinese (简体中文)', en: 'English' }
 const RUN_STATS = ['sessionStats', 'tokenUsage', 'contextPressure']
@@ -47,7 +48,8 @@ export function install(rt) {
     rooms: Object.values(state.rooms).map(({ log, seen, lateRounds, sessions, segments, ...room }) => {
       const parts = [...Object.values(sessions ?? {}), ...Object.values(segments ?? {}).flat().map(segment => segment.sessionId)]
       const last = (log ?? []).filter(line => line.kind === undefined).at(-1)
-      return { ...room, parts, ...(last ? { preview: last.who === 'User' ? last.text : `${last.who}：${last.text}` } : {}) }
+      const preview = last && groupDisplayText(last)
+      return { ...room, parts, ...(last ? { preview: last.who === 'User' ? preview : `${last.who}：${preview}` } : {}) }
     }),
     exchangeTurns: state.exchangeTurns,
     questions: state.questions,
@@ -169,13 +171,21 @@ export function install(rt) {
             if (room === undefined) return fail('Unknown group', 'bot/not-found')
             if (body.attachmentId !== undefined) return ok(await readMobileAttachment(ctx, room, body, signal))
             if (body.seq !== undefined) return ok({ roomId: room.id, seq: body.seq, ...await rt.readGroupLine(room, body.seq, { offset: body.offset, limit: body.limit }) })
-            const entries = (room.log ?? []).slice(-60).map(({ seq, who, botId, text, time, kind, length, images, files }) => ({
-              seq, who, text, length: length ?? text.length,
-              ...(botId === undefined ? {} : { botId }),
-              ...(time === undefined ? {} : { time }),
-              ...(kind === undefined ? {} : { kind }),
-              ...(images?.length ? { images: images.map(({ attachmentId, mediaType, name, bytes, width, height }) => ({ attachmentId, mediaType, ...(name === undefined ? {} : { name }), bytes, width, height })) } : {}),
-              ...(files?.length ? { files: files.map(({ attachmentId, name, bytes }) => ({ attachmentId, name, bytes })) } : {}),
+            const entries = await Promise.all((room.log ?? []).slice(-60).map(async line => {
+              const { seq, who, botId, time, kind, images, files } = line
+              const display = images?.length && rt.readGroupLine
+                ? await rt.readGroupLine(room, seq, { limit: 2000 })
+                : { text: typeof line.displayText === 'string' ? line.displayText : groupDisplayText(line), length: line.displayLength ?? line.length }
+              const text = display.text
+              return {
+                seq, who, text, length: display.length ?? text.length,
+                ...(images?.length ? { displayText: text, displayLength: display.length ?? text.length } : {}),
+                ...(botId === undefined ? {} : { botId }),
+                ...(time === undefined ? {} : { time }),
+                ...(kind === undefined ? {} : { kind }),
+                ...(images?.length ? { images: images.map(({ attachmentId, mediaType, name, bytes, width, height }) => ({ attachmentId, mediaType, ...(name === undefined ? {} : { name }), bytes, width, height })) } : {}),
+                ...(files?.length ? { files: files.map(({ attachmentId, name, bytes }) => ({ attachmentId, name, bytes })) } : {}),
+              }
             }))
             return ok({ roomId: room.id, entries, hasMore: false })
           }

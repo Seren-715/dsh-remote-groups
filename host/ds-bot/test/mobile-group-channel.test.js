@@ -78,6 +78,20 @@ test('Remote history exposes public attachment references without paths or image
   assert.deepEqual(history.value.entries[0].files, [file])
 })
 
+test('Remote earlier hides old image readings without changing stored logs or ordinary user text', async t => {
+  const image = { attachmentId: 'sha256:picture', name: 'look.png' }
+  const text = '原文\n[Image "look.png", read by Vision:]\n可灵AI\n[End of image "look.png"]'
+  const log = [{ seq: 1, who: 'User', text, images: [image] }, { seq: 2, who: 'User', text }]
+  const call = channel(t, { room: { id: 'r1', log } })
+  const { value } = await call({ roomId: 'r1' })
+  assert.equal(value.entries[0].text, '原文')
+  assert.equal(value.entries[0].length, 2)
+  assert.equal(value.entries[0].displayText, '原文')
+  assert.equal(value.entries[0].displayLength, 2)
+  assert.equal(value.entries[1].text, text)
+  assert.equal(log[0].text, text)
+})
+
 test('earlier without a room keeps its original Session and cursor behavior', async t => {
   const page = { items: [{ kind: 'message', text: 'Earlier part' }], cursor: null, startedAt: 10 }
   const cursor = { part: 1, beforeSeq: 3 }

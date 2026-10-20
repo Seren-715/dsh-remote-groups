@@ -26,6 +26,7 @@ import { escapeRegExp, headOf, splitRef, textOf } from './text.js'
 import { mentionSpans, speakerOf } from '../shared/mentions.js'
 import { GROUP_REF, output } from './tools.js'
 import { failureLine } from './turns.js'
+import { groupDisplayText } from './group-display.js'
 
 const ROOM_LOG_MAX = 60
 const ROOM_FIRST_LOOK = 12
@@ -172,10 +173,13 @@ export function install(rt) {
     if (!Number.isSafeInteger(offset) || offset < 0) throw invalid('Message offset must be a non-negative integer')
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 12_000) throw invalid('Message chunk limit must be from 1 to 12000')
     let saved = line.text ?? ''
-    const length = line.length ?? saved.length
+    const modelLength = line.length ?? saved.length
     if (line.length !== undefined) {
       try { saved = await readFile(lineFile(room.id, seq), 'utf8') } catch { /* The stored prefix remains readable. */ }
     }
+    const complete = saved.length === modelLength
+    saved = groupDisplayText(line, saved)
+    const length = line.displayLength ?? (complete ? saved.length : Math.max(saved.length, modelLength))
     if (offset > saved.length) throw invalid('Message offset exceeds the saved text')
     const low = saved.charCodeAt(offset)
     const before = saved.charCodeAt(offset - 1)
@@ -184,7 +188,7 @@ export function install(rt) {
     // A limit of one at an emoji cannot make progress without splitting it.
     if (text.length === 0 && offset < saved.length) throw invalid('Message chunk limit splits a Unicode character')
     const end = offset + text.length
-    return { text, length, offset, nextOffset: end < saved.length ? end : null, complete: saved.length === length }
+    return { text, length, offset, nextOffset: end < saved.length ? end : null, complete: complete || saved.length === length }
   }
 
   // What a member reads of a line: all of it, up to GROUP_LINE_READ.
@@ -548,13 +552,14 @@ export function install(rt) {
       // the end of work whose result it already posted is an event of the round.
       const event = item => item.failed || item.resumed || item.stopped || item.done
       for (const post of posts.filter(item => !item.kickoff && !event(item) && item.logged === undefined)) {
-        // Image readings go into the log only; `@` names are picked from what the user typed.
+        // The model keeps the readings; the display keeps exactly what the user typed.
         // A file stays with its line and reaches each member the line is shown to.
         const readings = post.images === undefined ? [] : await rt.imagesForGroup(post.images, room.id)
         const text = [post.text, ...readings, ...(post.files ?? []).map(fileLine)].filter(Boolean).join('\n')
         appendRoom(room, {
           ...(post.botId ? { who: rt.botOf(post.botId)?.name ?? post.name ?? 'Bot', botId: post.botId } : { who: 'User' }),
           text,
+          ...(post.images?.length ? { displayText: headOf(post.text ?? '', TEXT_KEPT), displayLength: (post.text ?? '').length } : {}),
           ...(post.images === undefined ? {} : { images: post.images }),
           ...(post.files === undefined ? {} : { files: post.files }),
         })

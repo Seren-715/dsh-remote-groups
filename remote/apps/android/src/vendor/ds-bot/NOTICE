@@ -6,3 +6,5 @@ Source: https://github.com/Fei2411/DeepSeek-Bot
 characters.js and inks.js are copied from ds-bot/src/client without changes.
 fold.js contains the pure foldPreview and stripLongNote logic from ds-bot/src/client/fold.js; React DOM controls are omitted.
 Native Android adapters are in screens/group-display.tsx and group-display-text.ts.
+
+The groupVisibleText compatibility filter in screens/group-image-display.ts adapts host/ds-bot/src/host/group-display.js, modified by Seren-715 (2026-10-20). Apache-2.0.

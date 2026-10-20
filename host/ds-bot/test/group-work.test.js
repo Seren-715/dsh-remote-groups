@@ -132,6 +132,27 @@ test('group images and files persist their references and reach DSH member deliv
   const history = (await host.call('earlier', { roomId: 'r1' })).value.entries
   assert.deepEqual(history[0].images, [image])
   assert.deepEqual(history[0].files, [file])
+  assert.equal(history[0].text, '@Chief review')
+  assert.equal(history[0].length, '@Chief review'.length)
+  const saved = JSON.parse(readFileSync(join(host.home, 'state.json'), 'utf8'))
+  assert.match(saved.rooms.r1.log[0].text, /could not be read right now/)
+  assert.equal(saved.rooms.r1.log[0].displayText, '@Chief review')
+})
+
+test('legacy image readings remain available to members while history only displays the user words', async t => {
+  const image = { attachmentId: 'sha256:picture', name: 'look.png' }
+  const original = '请检查图片'
+  const reading = '[Image "look.png", read by Vision:]\n可灵AI image details\n[End of image "look.png"]'
+  const host = await start(t, { seq: 1, log: [{ seq: 1, who: 'User', text: `${original}\n${reading}`, images: [image] }] })
+  const read = host.round('legacy-image', host.say('@Chief continue'))
+  await settle(() => host.agentOf('ga').calls.length === 1)
+  assert.match(text(host.agentOf('ga').calls[0]), /可灵AI image details/)
+  host.begin('ga')
+  host.finish('ga', 'Checked')
+  await settle(() => read() !== undefined)
+  const history = (await host.call('earlier', { roomId: 'r1' })).value.entries
+  assert.equal(history[0].text, original)
+  assert.equal(history[0].length, original.length)
 })
 
 test('work past the grace lets the round go on, and the member that asked answers the result', async (t) => {

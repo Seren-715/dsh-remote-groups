@@ -72,3 +72,23 @@ test('display reads reject foreign rooms, invalid sequences, offsets and split U
   await assert.rejects(rt.readGroupLine(room, 1, { offset: 1, limit: 1 }), /Unicode/)
   assert.deepEqual(await rt.readGroupLine(room, 1, { offset: 4 }), { text: '', length: 4, offset: 4, nextOffset: null, complete: true })
 })
+
+test('image display chunks retain full user text while model logs keep their OCR reading', async t => {
+  const home = mkdtempSync(join(tmpdir(), 'ds-bot-display-'))
+  t.after(() => rmSync(home, { recursive: true, force: true, maxRetries: 5 }))
+  const { rt, room } = reader(t, home)
+  const original = '原文'.repeat(7000)
+  const reading = '[Image "look.png", read by Vision:]\n可灵AI\n[End of image "look.png"]'
+  const full = `${original}\n${reading}`
+  const images = [{ attachmentId: 'sha256:picture', name: 'look.png' }]
+  room.log.push(rt.keepGroupLine(room.id, { seq: 1, who: 'User', text: full, images, displayText: original.slice(0, 2000), displayLength: original.length }, full))
+  const first = await rt.readGroupLine(room, 1)
+  const second = await rt.readGroupLine(room, 1, { offset: first.nextOffset })
+  assert.equal(first.text + second.text, original)
+  assert.equal(first.length, original.length)
+  assert.equal(second.nextOffset, null)
+  assert.equal(second.complete, true)
+  assert.equal(readFileSync(join(home, 'group-lines/r1/1.txt'), 'utf8'), full)
+  room.log.push({ seq: 2, who: 'User', text: `检查\n${reading}`, images })
+  assert.deepEqual(await rt.readGroupLine(room, 2), { text: '检查', length: 2, offset: 0, nextOffset: null, complete: true })
+})

@@ -1,4 +1,5 @@
 export { foldPreview, stripLongNote } from '../vendor/ds-bot/fold.js'
+export { groupVisibleText } from './group-image-display'
 
 /** Matches the desktop Today / Yesterday / date + time labels. */
 export function groupTimeLabel(value: number | string | undefined, zh: boolean, now = Date.now()): string {

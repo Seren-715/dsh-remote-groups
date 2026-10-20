@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { foldPreview, groupTimeLabel } from '../src/screens/group-display-text'
+import { foldPreview, groupTimeLabel, groupVisibleText } from '../src/screens/group-display-text'
 
 describe('desktop group message presentation', () => {
   it('keeps the desktop thresholds and bounded preview', () => {
@@ -23,5 +23,19 @@ describe('desktop group message presentation', () => {
     expect(groupTimeLabel(new Date(2025, 9, 18, 9, 30).toISOString(), false, now)).toContain('2025')
     expect(groupTimeLabel(undefined, true, now)).toBe('')
     expect(groupTimeLabel('bad date', true, now)).toBe('')
+  })
+})
+
+
+describe('image message display compatibility', () => {
+  const image = { attachmentId: 'sha256:abcdef012345', name: 'a[1].jpg', bytes: 20 }
+  const block = '[Image "a[1].jpg", read by vision:]\n可灵 AI\nOCR description\n[End of image "a[1].jpg"]'
+  it('hides only the matching old generated image block', () => {
+    const text = '原文\n'+block
+    expect(groupVisibleText({ seq: 1, who: 'User', text, images: [image] })).toBe('原文')
+    expect(groupVisibleText({ seq: 1, who: 'User', text })).toBe(text)
+  })
+  it('trusts explicit display text, including user-written reserved-looking text', () => {
+    expect(groupVisibleText({ seq: 1, who: 'User', text: block, displayText: block, images: [image] })).toBe(block)
   })
 })

@@ -24,7 +24,7 @@ export interface GroupRoom {
 }
 
 export interface GroupAttachment { attachmentId: string; name?: string; bytes: number; mediaType?: string; width?: number; height?: number }
-export interface GroupEntry { seq: number; who: string; botId?: string; text: string; length?: number; time?: number | string; kind?: string; images?: GroupAttachment[]; files?: GroupAttachment[] }
+export interface GroupEntry { seq: number; who: string; botId?: string; text: string; length?: number; displayText?: string; displayLength?: number; time?: number | string; kind?: string; images?: GroupAttachment[]; files?: GroupAttachment[] }
 export interface GroupApproval { id: string; botId: string; roomId?: string; tool?: string; reason?: string; detail?: { text?: string; code?: string }; answerable?: boolean }
 export interface GroupWork { botId: string; since?: number; tool?: string; text?: string }
 export interface GroupState {

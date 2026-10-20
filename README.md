@@ -13,6 +13,9 @@
 - 群聊专用会话、成员管理、主持人、工作目录、单次审批与停止任务。
 - 图片/文件上传与历史附件读取，长消息折叠和分段加载。
 - 深浅色界面、桌面同源头像与 Android 原生群聊页面。
+- 群名下方固定审批卡、长按头像 @、输入框上方 @ 候选及按账户/电脑/群隔离的持久文本草稿。
+
+新消息和审批不会强制滚动打断历史阅读，使用「回到最新」按钮主动定位。图片识别辅助信息保留给模型，聊天只显示用户原文和图片。
 
 群聊已有桌面窗口/历史会话复用尚未接入。不同 CLI 的能力、图片理解和可用模型取决于本机配置。手机不提供模型额度；调用消耗相应 DSH 或 CLI 账号的现有用量。
 
@@ -20,8 +23,8 @@
 
 从 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 下载：
 
-1. `dsh-remote-groups-build60.apk`：Android 8.0+、ARM64；应用名 **DSH Remote Groups**。可以覆盖同签名 Groups 旧版，与上游 Remote 独立安装。
-2. `ds-bot-0.1.7-mobile.20261020.1.tgz`：在电脑 DSH 插件管理中使用本地文件安装。包名仍为 `ds-bot`，会替换同名上游版本；提示重启时正常退出并重开 DSH。
+1. `dsh-remote-groups-build61.apk`：Android 8.0+、ARM64；应用名 **DSH Remote Groups**。可以覆盖同签名 Groups 旧版，与上游 Remote 独立安装。
+2. `ds-bot-0.1.7-mobile.20261020.2.tgz`：在电脑 DSH 插件管理中使用本地文件安装。包名仍为 `ds-bot`，会替换同名上游版本；提示重启时正常退出并重开 DSH。
 3. 电脑同时需要安装并启用 Remote 连接插件；已有兼容的 `ds-harness-remote` 可继续使用。本仓库保留其源码于 `remote/`。
 4. 配置各 CLI 的登录和模型，在电脑创建成员及群聊、设置工作目录。手机登录 Remote、信任并连接电脑，然后打开「群聊」。电脑和 Host 需要保持运行。
 
@@ -31,7 +34,7 @@
 
 | 目录 | 内容 | 许可 |
 | --- | --- | --- |
-| `remote/` | Remote 插件、Android 客户端及共享协议 | MIT；`vendor/ds-bot` 为 Apache-2.0 |
+| `remote/` | Remote 插件、Android 客户端及共享协议 | MIT；DS Bot 衍生模块为 Apache-2.0 |
 | `host/` | DS Bot 群聊 Host、客户端与上游桌面应用源码 | Apache-2.0；保留其第三方 NOTICE |
 | `docs/` | 整合说明、来源和验证范围 | Apache-2.0 |
 

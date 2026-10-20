@@ -18,6 +18,9 @@ import { GroupDetails } from './group-details'
 import type { GroupEntry, GroupState } from './group-types'
 import { readGroupMessage } from '../services/group-message'
 import { throwIfAborted } from '../services/abort-signal'
+import { groupDraftKey, loadGroupDrafts, saveGroupDrafts } from '../services/group-drafts'
+import { insertMention, mentionQuery } from './group-mentions'
+import { GroupApprovals } from './group-approvals'
 
 interface History { entries: GroupEntry[]; roomId: string; hasMore: boolean }
 interface Progress { callId: string; replies: Array<{ kind?: string; name?: string; botId?: string; text?: string; time?: number; code?: string }> }
@@ -29,6 +32,8 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
   const t = (cn: string, en: string) => zh ? cn : en
   const connection = useAppStore(state => state.connection)
   const deviceId = useAppStore(state => state.selectedDevice?.deviceId)
+  const draftServer = useAppStore(state => state.config?.baseUrl ?? '')
+  const draftAccount = useAppStore(state => state.account ?? state.identity?.deviceId ?? '')
   const scope = getGroupConnectionScope()
   const connected = connection.phase === 'connected'
   const [foreground, setForeground] = useState(AppState.currentState === 'active')
@@ -36,7 +41,14 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
   const [roomId, setRoomId] = useState<string>()
   const [entries, setEntries] = useState<GroupEntry[]>([])
   const [roundEvents, setRoundEvents] = useState<GroupEntry[]>([])
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => { try { return loadGroupDrafts() } catch { return {} } })
+  const draftsRef = useRef(drafts)
+  const input = useRef<TextInput>(null)
+  const [cursor, setCursor] = useState(0)
+  const [mentionSelection, setMentionSelection] = useState<{ start: number; end: number }>()
+  const [hasNewMessages, setHasNewMessages] = useState(false)
+  const initialScroll = useRef(true)
+  const lastHistory = useRef<{ room?: string; seq?: number }>({})
   const [creating, setCreating] = useState(false)
   const [groupSearch, setGroupSearch] = useState('')
   const [name, setName] = useState('')
@@ -72,10 +84,22 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
   const room = snapshot?.rooms.find(item => item.id === roomId)
   const botName = (id: string) => snapshot?.bots.find(bot => bot.id === id)?.name ?? id
   const writable = connected && foreground && snapshot !== undefined && !snapshot.readOnly
-  const draft = roomId === undefined ? '' : drafts[roomId] ?? ''
-  const setDraft = (value: string) => {
-    if (roomId !== undefined) setDrafts(previous => ({ ...previous, [roomId]: value }))
+  const draftKey = roomId === undefined ? undefined : groupDraftKey(draftServer, draftAccount, deviceId ?? '', roomId)
+  const draft = draftKey === undefined ? '' : drafts[draftKey] ?? ''
+  function writeDraft(key: string, value: string) {
+    const next = { ...draftsRef.current, [key]: value }
+    draftsRef.current = next
+    setDrafts(next)
+    try { saveGroupDrafts(next) } catch { setError(t('草稿暂未保存到手机，请保留此页面', 'Draft could not be saved. Keep this page open.')) }
   }
+  const setDraft = (value: string) => { if (draftKey !== undefined) writeDraft(draftKey, value) }
+  useEffect(() => { setCursor(draft.length); setMentionSelection(undefined) }, [roomId, deviceId, draftAccount, draftServer])
+  useEffect(() => {
+    if (roomId !== undefined && lastHistory.current.room === roomId && !loading && initialScroll.current) {
+      if (entries.length === 0) { initialScroll.current = false; return }
+      requestAnimationFrame(() => list.current?.scrollToEnd({ animated: false }))
+    }
+  }, [roomId, loading, entries.length])
 
   useEffect(() => {
     const listener = AppState.addEventListener('change', value => setForeground(value === 'active'))
@@ -97,11 +121,13 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
   }, [deviceId, scope, connected, foreground, roomId])
 
   useEffect(() => {
+    initialScroll.current = true
+    lastHistory.current = {}
+    setHasNewMessages(false)
     setSnapshot(undefined)
     setRoomId(undefined)
     setEntries([])
     setRoundEvents([])
-    setDrafts({})
     setImageDrafts({})
     setCreating(false)
     setGroupSearch('')
@@ -133,6 +159,9 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
             const history = await callGroupBot<History>('earlier', { roomId }, controller.signal)
             if (cancelled) return
             if (history.roomId !== roomId || !Array.isArray(history.entries)) throw new Error(t('群聊历史返回格式异常', 'Invalid room history response'))
+            const latest = history.entries.at(-1)?.seq
+            if (lastHistory.current.room === roomId && lastHistory.current.seq !== undefined && latest !== undefined && latest > lastHistory.current.seq) setHasNewMessages(true)
+            lastHistory.current = { room: roomId, seq: latest }
             setEntries(history.entries)
             const progress = await callGroupBot<Progress[]>('room-progress', { roomId }, controller.signal)
             if (cancelled) return
@@ -220,6 +249,7 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
     const startedScope = pickerScope
     const generation = lifecycle.current
     const submitted = draft
+    const submittedDraftKey = draftKey
     const items = [...images]
     const controller = new AbortController()
     uploadController.current = controller
@@ -247,7 +277,7 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
       await callGroupBot('send', { sessionId: target, text: submitted, uploadedFiles }, controller.signal)
       if (generation !== lifecycle.current) return
       setImageDrafts(previous => ({ ...previous, [target]: (previous[target] ?? []).filter(item => !items.some(sent => sent.id === item.id)) }))
-      setDrafts(previous => previous[target] === submitted ? { ...previous, [target]: '' } : previous)
+      if (submittedDraftKey !== undefined && draftsRef.current[submittedDraftKey] === submitted) writeDraft(submittedDraftKey, '')
       setRefresh(value => value + 1)
     } catch (cause) {
       if (generation === lifecycle.current) setError(controller.signal.aborted ? t('已取消，附件和文字保留在草稿中', 'Cancelled. Your attachments and text remain in the draft.') : cause instanceof Error ? cause.message : String(cause))
@@ -262,6 +292,9 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
     setEntries([])
     setRoundEvents([])
     nearBottom.current = true
+    initialScroll.current = true
+    lastHistory.current = {}
+    setHasNewMessages(false)
     setRoomId(id)
     setCreating(false)
     setDetailsOpen(false)
@@ -291,10 +324,19 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
     {error !== '' && <View style={styles.error}><Text selectable style={styles.errorText}>{error}</Text></View>}
     {pollError !== '' && <View style={styles.error}><Text selectable style={styles.errorText}>{pollError}</Text></View>}
   </>
-  const mention = (name: string) => {
-    setDraft(`${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}@${name} `)
+  const mention = (name: string, complete = true) => {
+    const result = insertMention(draft, cursor, name, complete)
+    setDraft(result.text)
+    setCursor(result.cursor)
+    setMentionSelection({ start: result.cursor, end: result.cursor })
     setPlusOpen(false)
+    requestAnimationFrame(() => input.current?.focus())
   }
+  const query = mentionQuery(draft, cursor)
+  const mentionOptions = room && query !== undefined ? [
+    { id: 'all', name: 'all', label: t('所有人', 'Everyone'), bot: undefined },
+    ...room.members.flatMap(id => { const bot = snapshot?.bots.find(item => item.id === id); return bot ? [{ id, name: bot.name, label: bot.name, bot }] : [] }),
+  ].filter(item => `${item.name} ${item.label}`.toLocaleLowerCase().includes(query.query.toLocaleLowerCase())) : []
   const loadEntry = (seq: number, signal: AbortSignal) => {
     const readingScope = getGroupConnectionScope()
     return readGroupMessage((payload, requestSignal) => {
@@ -309,6 +351,7 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
       action={room ? <IconButton label={t('群聊信息', 'Group info')} icon={MoreHorizontal} onPress={() => { Keyboard.dismiss(); setDetailsOpen(true) }} />
         : <IconButton label={t('刷新', 'Refresh')} icon={RefreshCw} disabled={!connected || !foreground || loading} onPress={() => setRefresh(value => value + 1)} />} />
     {errors}
+    {room && <GroupApprovals items={approvals} botName={botName} zh={zh} disabled={!writable || busy !== ''} onAnswer={(id, choice) => { void mutate(`approval:${id}`, 'approval-answer', { id, choice }) }} />}
     {!!snapshot?.readOnly && <Text selectable style={styles.note}>{snapshot.readOnly}</Text>}
     {!connected && <Text style={styles.note}>{subtitle}</Text>}
     {room === undefined ? <ScrollView style={styles.flex} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.body, { maxWidth: contentMaxWidth }]}>
@@ -355,17 +398,21 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
         </View>)}
       </>}
     </ScrollView> : <View style={styles.flex}>
-      <FlatList ref={list} data={[...entries, ...roundEvents]} keyExtractor={item => `${roomId}:${item.seq}`} style={styles.flex}
+      <FlatList ref={list} data={[...entries, ...roundEvents]} keyExtractor={item => `${roomId}:${item.seq}`} style={styles.flex} initialNumToRender={60}
         contentContainerStyle={[styles.messages, { maxWidth: contentMaxWidth }]}
+        onScrollBeginDrag={() => { initialScroll.current = false }}
+        onContentSizeChange={() => { if (initialScroll.current && lastHistory.current.room === roomId && !loading) requestAnimationFrame(() => list.current?.scrollToEnd({ animated: false })) }}
+        onEndReached={() => { if (lastHistory.current.room === roomId && !loading) initialScroll.current = false }} onEndReachedThreshold={0.01}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScroll={event => {
           const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent
-          nearBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 100
-        }} scrollEventThrottle={100} onContentSizeChange={() => { if (nearBottom.current) list.current?.scrollToEnd({ animated: false }) }}
+          nearBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40
+          if (nearBottom.current) setHasNewMessages(false)
+        }} scrollEventThrottle={100}
         ListEmptyComponent={<Text style={styles.note}>{loading ? t('加载消息…', 'Loading messages…') : t('还没有消息。', 'No messages yet.')}</Text>}
-        renderItem={({ item }) => <GroupMessage roomId={roomId} entry={item} bot={snapshot?.bots.find(bot => bot.id === item.botId || bot.name === item.who)} zh={zh} onToggleExpand={() => { nearBottom.current = false }} loadWhole={signal => loadEntry(item.seq, signal)} />}
+        renderItem={({ item }) => <GroupMessage roomId={roomId} entry={item} bot={snapshot?.bots.find(bot => bot.id === item.botId || bot.name === item.who)} zh={zh} onMention={name => mention(name, false)} onToggleExpand={() => { nearBottom.current = false }} loadWhole={signal => loadEntry(item.seq, signal)} />}
         ListFooterComponent={<>
           {work.map(item => <View key={item.botId} style={styles.workRow}>
-            <GroupAvatar bot={snapshot?.bots.find(bot => bot.id === item.botId)} size={34} />
+            <GroupAvatar bot={snapshot?.bots.find(bot => bot.id === item.botId)} size={34} onLongPress={() => mention(botName(item.botId), false)} />
             <View style={[styles.workCard, { width: workWidth }]}><View style={styles.workHeader}><Text numberOfLines={1} style={[styles.author, styles.workTitle]}>{botName(item.botId)} · {t('工作中', 'Working')}</Text>
               <IconButton label={t('停止该成员', 'Stop member')} icon={Square} disabled={!writable || busy !== ''} onPress={() => {
                 void mutate(`stop:${item.botId}`, 'stop-member-work', { roomId: room.id, botId: item.botId })
@@ -373,25 +420,20 @@ export function GroupsScreen({ onBack }: { onBack: () => void }) {
               <Text selectable numberOfLines={3} style={styles.note}>{item.tool ?? item.text ?? t('等待输出…', 'Waiting for output…')}</Text>
             </View>
           </View>)}
-          {approvals.map(item => <View key={item.id} style={styles.approval}>
-            <Text style={styles.author}>{botName(item.botId)} · {t('等待审批', 'Approval required')}</Text>
-            <Text selectable style={styles.messageText}>{item.tool}</Text>
-            {!!item.detail?.text && <Text selectable style={styles.messageText}>{item.detail.text}</Text>}
-            {!!item.detail?.code && <Text selectable style={styles.messageText}>{item.detail.code}</Text>}
-            {!!item.reason && <Text selectable style={styles.note}>{item.reason}</Text>}
-            <View style={styles.row}>
-              <Button label={t('允许一次', 'Allow once')} disabled={!writable || busy !== '' || !item.answerable} onPress={() => { void mutate(`approval:${item.id}`, 'approval-answer', { id: item.id, choice: 'allow' }) }} />
-              <Button label={t('拒绝', 'Reject')} variant="danger" disabled={!writable || busy !== '' || !item.answerable} onPress={() => { void mutate(`approval:${item.id}`, 'approval-answer', { id: item.id, choice: 'reject' }) }} />
-            </View>
-            {!item.answerable && <Text style={styles.note}>{t('请在电脑处理此审批。', 'Handle this approval on your computer.')}</Text>}
-          </View>)}
         </>} />
       <KeyboardInset grow={false}>
+        {hasNewMessages && <Pressable accessibilityRole="button" style={styles.latest} onPress={() => { setHasNewMessages(false); nearBottom.current = true; list.current?.scrollToEnd({ animated: true }) }}><Text style={{ color: colors.primary }}>{t('新消息 · 回到最新 ↓', 'New messages · Jump to latest ↓')}</Text></Pressable>}
         {images.length > 0 && <GroupAttachmentDrafts items={images} disabled={busy !== ''} zh={zh} onRemove={id => { if (roomId) setImageDrafts(previous => ({ ...previous, [roomId]: (previous[roomId] ?? []).filter(item => item.id !== id) })) }} />}
         {busy === 'send' && <View style={styles.identity}><Text style={styles.note}>{uploadProgress || t('正在发送…', 'Sending…')}</Text><Button label={t('取消', 'Cancel')} variant="quiet" onPress={() => uploadController.current?.abort()} /></View>}
+        {mentionOptions.length > 0 && !plusOpen && <ScrollView horizontal keyboardShouldPersistTaps="always" style={styles.mentionBar} contentContainerStyle={styles.mentionOptions}>
+          {mentionOptions.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`@${item.name}`} style={styles.mentionOption} onPress={() => mention(item.name)}>
+            {item.bot ? <GroupAvatar bot={item.bot} size={26} /> : <AtSign size={22} color={colors.primary} />}
+            <Text numberOfLines={1} style={[styles.note, { color: colors.ink, maxWidth: 120 }]}>{item.label}</Text>
+          </Pressable>)}
+        </ScrollView>}
         <View style={[styles.composer, { maxWidth: contentMaxWidth }]}>
         <IconButton label={t('添加或提及成员', 'Add or mention a member')} icon={Plus} disabled={!writable} onPress={() => { Keyboard.dismiss(); setPlusOpen(true) }} />
-        <TextInput accessibilityLabel={t('群聊消息', 'Group message')} style={styles.draft} value={draft} onChangeText={setDraft} multiline
+        <TextInput ref={input} accessibilityLabel={t('群聊消息', 'Group message')} style={styles.draft} value={draft} onChangeText={value => { setMentionSelection(undefined); setDraft(value) }} onSelectionChange={event => { setCursor(event.nativeEvent.selection.start); setMentionSelection(undefined) }} selection={mentionSelection} multiline
           placeholder={t('发送消息', 'Message')} placeholderTextColor={colors.muted} editable={writable} />
         <IconButton label={t('发送', 'Send')} icon={Send} disabled={!writable || busy !== '' || pickingImages || (!draft.trim() && images.length === 0)} onPress={() => { void sendMessage() }} />
       </View></KeyboardInset>
@@ -457,7 +499,10 @@ function createStyles(colors: ThemeColors) {
     workTitle: { flex: 1, minWidth: 0 },
     author: { ...type.smallStrong, color: colors.ink },
     messageText: { ...type.body, color: colors.ink },
-    approval: { marginLeft: 59, marginRight: 30, padding: spacing.sm, borderWidth: 1, borderColor: colors.warning, borderRadius: radius.md, gap: spacing.xs, marginBottom: spacing.sm },
+    latest: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: colors.primarySoft },
+    mentionBar: { flexGrow: 0, maxHeight: 58, borderTopWidth: 1, borderColor: colors.separator, backgroundColor: colors.surface },
+    mentionOptions: { paddingHorizontal: 12, paddingVertical: 8, gap: 10 },
+    mentionOption: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, minHeight: 38, borderRadius: 12, backgroundColor: colors.surfaceStrong },
     modal: { flex: 1, backgroundColor: colors.modalBackdrop, justifyContent: 'flex-end' },
     sheet: { width: '100%', alignSelf: 'center', backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: spacing.md },
     sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: spacing.xs },

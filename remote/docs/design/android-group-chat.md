@@ -24,6 +24,16 @@ The ported DS Bot sources and license notices live in `apps/android/src/vendor/d
 
 The computer runs the selected runtime and pays its existing provider/account usage. This integration does not provide new model quota. Keep the computer and Remote Host running.
 
+## Composer and approval revision (build 61)
+
+Image readings remain available to model context but are separate from user-visible group text. The Host preserves original user text in `displayText/displayLength`, exposes clean history/chunks and preview text, and keeps attachment references. Older image records are filtered using the exact attachment label; their stored logs are not rewritten. Android uses explicit display fields when supplied and has the same bounded compatibility filter for older Hosts.
+
+Pending approvals are displayed in a fixed panel directly below the room title, outside the message list. Requests have one-time allow/reject controls and a scrollable details dialog. New approvals and new messages never force the reader to the bottom. Entering a room initially opens its latest content; later updates expose a manual “Jump to latest” control while preserving history position.
+
+Typing a cursor-local `@` opens a compact horizontal candidate row directly above the composer. Choosing a member replaces the pending query; long-pressing a message/work avatar inserts a mention at the cursor. Programmatic selection is released after the native selection event so subsequent cursor movement remains free.
+
+Text drafts are written to the application's private document storage on each edit and restored after screen/process restart. Keys include server, account, Host and room; connection generations are deliberately excluded so reconnecting does not lose text. Successful sends clear only the exact submitted draft when no newer edit exists. Attachment staging remains limited to the current screen lifecycle.
+
 ## Limits and verification
 
 The initial mobile page does not create CLI Bots or attach arbitrary existing desktop application windows. It displays the latest 60 persisted room messages plus current work/approval state. It does not provide paging of older room history or native push notifications.

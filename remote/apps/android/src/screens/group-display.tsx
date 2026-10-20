@@ -5,21 +5,21 @@ import { NativeMarkdown } from '../ui/markdown'
 import { useTheme } from '../ui/theme-context'
 import { lookOf } from '../vendor/ds-bot/characters.js'
 import { GroupCharacter } from './group-avatar-native'
-import { foldPreview, groupTimeLabel, stripLongNote } from './group-display-text'
+import { foldPreview, groupTimeLabel, groupVisibleText, stripLongNote } from './group-display-text'
 import type { GroupBot, GroupEntry } from './group-types'
 import { GroupAttachmentView } from './group-attachment-view'
 
 /** Uses the same generated character paths, colors and ID fallback as desktop. */
-export const GroupAvatar = memo(function GroupAvatar({ bot, size = 36, user = false }: { bot?: GroupBot; size?: number; user?: boolean }) {
+export const GroupAvatar = memo(function GroupAvatar({ bot, size = 36, user = false, onLongPress }: { bot?: GroupBot; size?: number; user?: boolean; onLongPress?: () => void }) {
   const { colors, scheme } = useTheme()
   const look = lookOf(bot)
   // Host uploaded avatars are bounded image data, never arbitrary external URLs.
   const photo = typeof look.image === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/i.test(look.image) ? look.image : undefined
-  return <View accessibilityLabel={user ? 'User' : bot?.name ?? 'Agent'} style={{ width: size, height: size, flexShrink: 0, borderRadius: Math.max(8, size * .23), backgroundColor: colors.surfaceStrong, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+  return <Pressable disabled={!onLongPress} onLongPress={onLongPress} delayLongPress={350} accessibilityRole={onLongPress ? 'button' : undefined} accessibilityLabel={onLongPress ? `@${bot?.name}` : user ? 'User' : bot?.name ?? 'Agent'} style={{ width: size, height: size, flexShrink: 0, borderRadius: Math.max(8, size * .23), backgroundColor: colors.surfaceStrong, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
     {user ? <User size={size * .55} color={colors.muted} /> : photo
       ? <Image source={{ uri: photo }} style={{ width: size, height: size }} resizeMode="cover" />
       : <GroupCharacter bot={bot} size={size * .93} dark={scheme === 'dark'} />}
-  </View>
+  </Pressable>
 })
 
 // The desktop clusterSeats geometry: diagonal pair, triangle, then four seats.
@@ -55,7 +55,7 @@ export function GroupRuntimeIcon({ runtime, size = 11 }: { runtime?: unknown; si
   return <Icon size={size} color={colors.subtle} />
 }
 
-export const GroupMessage = memo(function GroupMessage({ entry, bot, zh, roomId, onToggleExpand, loadWhole }: { entry: GroupEntry; bot?: GroupBot; zh: boolean; roomId?: string; onToggleExpand?: () => void; loadWhole?: (signal: AbortSignal) => Promise<{ text: string; whole: boolean }> }) {
+export const GroupMessage = memo(function GroupMessage({ entry, bot, zh, roomId, onToggleExpand, loadWhole, onMention }: { entry: GroupEntry; bot?: GroupBot; zh: boolean; roomId?: string; onToggleExpand?: () => void; loadWhole?: (signal: AbortSignal) => Promise<{ text: string; whole: boolean }>; onMention?: (name: string) => void }) {
   const { colors, scheme } = useTheme()
   const user = entry.who === 'User'
   const [expanded, setExpanded] = useState(false)
@@ -64,10 +64,11 @@ export const GroupMessage = memo(function GroupMessage({ entry, bot, zh, roomId,
   const [error, setError] = useState('')
   const controller = useRef<AbortController | undefined>(undefined)
   useEffect(() => () => controller.current?.abort(), [])
-  const text = stripLongNote(entry.text)
-  const cut = (entry.length ?? 0) > entry.text.length
+  const text = stripLongNote(groupVisibleText(entry))
+  const contentLength = entry.displayLength ?? (entry.images?.length && text !== stripLongNote(entry.text) ? text.length : entry.length ?? text.length)
+  const cut = contentLength > text.length
   const preview = useMemo(() => foldPreview(text, cut ? { chars: -1, lines: 0 } : undefined), [text, cut])
-  const shown = expanded || preview === null ? read?.text ?? text : preview
+  const shown = expanded || preview === null ? read ? stripLongNote(groupVisibleText(entry, read.text)) : text : preview
   const time = groupTimeLabel(entry.time, zh) || (zh ? '时间未记录' : 'Time not recorded')
   const toggle = async () => {
     if (loading) return
@@ -96,7 +97,7 @@ export const GroupMessage = memo(function GroupMessage({ entry, bot, zh, roomId,
   return <View style={styles.message}>
     {time !== '' && <Text style={[styles.time, { color: colors.subtle }]}>{time}</Text>}
     <View style={[styles.row, user && styles.userRow]}>
-      <GroupAvatar bot={bot} user={user} size={34} />
+      <GroupAvatar bot={bot} user={user} size={34} onLongPress={!user && bot && onMention ? () => onMention(bot.name) : undefined} />
       <View style={[styles.messageColumn, user && styles.userColumn]}>
         <View style={[styles.nameLine, user && styles.userNameLine]}>
           {!user && <GroupRuntimeIcon runtime={bot?.runtime} />}
@@ -111,7 +112,7 @@ export const GroupMessage = memo(function GroupMessage({ entry, bot, zh, roomId,
           {error !== '' && <Text style={[styles.expandText, { color: colors.danger }]}>{error}</Text>}
           {expanded && cut && read && !read.whole && <Text style={[styles.expandText, { color: colors.muted }]}>{zh ? `旧记录仅保存了前 ${read.text.length.toLocaleString()} 字符` : `Only the first ${read.text.length.toLocaleString()} characters were kept`}</Text>}
           {preview !== null && <Pressable disabled={loading} accessibilityRole="button" accessibilityState={{ expanded, disabled: loading }} hitSlop={8} style={styles.expand} onPress={() => { void toggle() }}>
-            <Text style={[styles.expandText, { color: colors.primary }]}>{error ? zh ? '重试加载全文' : 'Retry loading' : expanded ? zh ? '收起' : 'Show less' : zh ? `展开全文 · ${(entry.length ?? text.length).toLocaleString()} 字符` : `Show all · ${(entry.length ?? text.length).toLocaleString()} characters`}</Text>
+            <Text style={[styles.expandText, { color: colors.primary }]}>{error ? zh ? '重试加载全文' : 'Retry loading' : expanded ? zh ? '收起' : 'Show less' : zh ? `展开全文 · ${contentLength.toLocaleString()} 字符` : `Show all · ${contentLength.toLocaleString()} characters`}</Text>
           </Pressable>}
         </View>
       </View>
