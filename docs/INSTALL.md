@@ -1,5 +1,7 @@
 # 安装：两种电脑插件，二选一
 
+[返回首页](../README.md) · [功能与操作图解](USAGE.md)
+
 先安装 DSH，再从 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 选择一个电脑包。两种电脑包均使用同一个 `dsh-remote-groups-build61.apk`（Android 8.0+ / ARM64）。已装 build61 手机端无需重装。
 
 | 电脑现状 | 安装哪个包 | 原插件怎么处理 |

@@ -32,6 +32,8 @@
     "README.md",
     "README.en.md",
     "docs/INSTALL.md",
+    "docs/USAGE.md",
+    "docs/images/",
     "remote/index.js",
     "remote/LICENSE",
     "remote/README.en.md",
