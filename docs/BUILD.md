@@ -41,3 +41,5 @@ Remote's GitHub-install entry remains in `remote/` with its built plugin distrib
 ## Unified computer plugin
 
 After preparing both component builds, run `npm run pack:plugin` at the repository root. The root manifest ships the existing runtime/client files and license notices. No install-time build script is required. Use the resulting `dsh-remote-groups` archive instead of installing either component separately. See [INSTALL](INSTALL.md) for migration.
+
+Run `npm run pack:companion` for the existing-upstream distribution. It stages the same allowlisted runtime files and notices, changes the distribution name, and uses `companion/cordis.patch.yml` to suspend standard upstream entries before mounting enhanced components under distinct IDs. It does not modify installed upstream files. Run `scripts/test-distributions.mjs` with `DSH_PACKAGING_HARNESS` pointing at a development installation containing official DSH dependencies to verify patch composition, removal and assertion boundaries. Both archives are mutually exclusive.

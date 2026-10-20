@@ -1,5 +1,14 @@
 # Preview verification
 
+## Full and companion distributions preview.4
+
+- Both archives contain the same enhanced Remote/Bot runtimes. The companion retains installed upstream dependencies and uses official bundle patches with id/name assertions to suspend standard upstream entries, then inserts distinct enhanced entry IDs. It supplies missing components internally, without a separate upstream install or install-time script.
+- Official DSH patch-composition checks passed for no upstream, Remote only, Bot only and both; assertion checks preserve unrelated plugins, and removing the companion patch restores upstream entries. A deliberate final user `disabled:false` override demonstrates the documented compatibility boundary rather than an automatic conflict detector.
+- An isolated official DSH CLI profile first installed both upstream component archives, then installed the companion. Real Web boots subsequently covered both, Bot only, Remote only and neither upstream installed. All four returned Bot state and one instance each of the Bot/Remote browser modules; the invented Bot marker survived component removal/restart. For the Remote-only transition, the isolated bundle order was explicitly restored after re-adding Remote; the companion must follow upstream bundles. These checks cover default data directories and standard entry IDs, not automatic custom configuration migration.
+- The companion was then removed through the official CLI and the two retained/reinstalled upstream components booted successfully, each client loaded once and the default-directory Bot marker remained. This verifies runtime restoration with the tested component archives, not backward compatibility of every enhanced data field.
+- Playwright opened the actual companion details and rendered the Remote settings/authorization UI. The distribution reports four contained components, with the ordinary Remote/Bot/search entries active and the TUI alternative inactive. Remote TypeScript checking passed after rebuilding client configuration aliases.
+- APK and Host business logic are unchanged from preview.3. No paid model prompts or personal DSH data were used. Previous Remote broad-suite failures and physical-phone/live-Agent limitations below still apply; this packaging check does not claim they were resolved.
+
 ## Unified computer plugin preview.3
 
 - One root package `dsh-remote-groups` contains both prebuilt component runtimes, separate browser manifests/bundles and their licenses. Official DSH relative bundle paths load the two package roots; neither upstream plugin is an npm dependency or a separate user download. Installation uses `--ignore-scripts`.

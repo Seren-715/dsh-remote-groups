@@ -1,34 +1,44 @@
-# 安装：一个电脑插件 + 一个手机 APK
+# 安装：两种电脑插件，二选一
 
-先安装 DSH。然后只需要从本项目的 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 下载两个文件：
+先安装 DSH，再从 [Releases](https://github.com/Seren-715/dsh-remote-groups/releases) 选择一个电脑包。两种电脑包均使用同一个 `dsh-remote-groups-build61.apk`（Android 8.0+ / ARM64）。已装 build61 手机端无需重装。
 
-1. 电脑：`dsh-remote-groups-0.1.0-preview.3.tgz`。在 DSH → 插件 → 添加插件中选择/填写这个本地文件，安装并启用，按提示正常重启 DSH。
-2. 手机：`dsh-remote-groups-build61.apk`。Android 8.0+ / ARM64，直接安装；旧 Groups 版本可覆盖安装。
+| 电脑现状 | 安装哪个包 | 原插件怎么处理 |
+| --- | --- | --- |
+| 没装过两个上游 | `dsh-remote-groups-0.1.0-preview.4.tgz` 完整版 | 无需另装上游 |
+| 已有 Remote、Bot，或两者 | `dsh-remote-groups-companion-0.1.0-preview.4.tgz` 配套版 | 保留安装；标准运行入口由配套版停用 |
+| 已在用本项目完整包 | 更新完整版 | 不再安装配套版 |
 
-合并插件已经包含群聊 Host、群聊桌面界面、Remote Host 和 Remote 桌面设置。**无需另外下载或安装 `ds-bot`、`ds-harness-remote` 或上游 APK。** 安装器仍需要联网获取普通运行依赖；本项目不捆绑 DSH 或各 Agent CLI。
+两种版本共享相同增强组件与功能，体积接近。手机转发、附件与本地 Agent 群聊依赖修改过的组件内部接口，所以配套版同样携带增强组件，不能只加载任意原版上游。两种版本不能同时启用。
 
-重启后，在插件列表的 **dsh-remote-groups** 设置中配置 Remote 登录/主机授权；手机登录同一连接服务并信任电脑。模型、CLI 登录、工作目录仍需按自己的环境设置。电脑保持运行。安装一个包不等于附送模型额度或自动安装 Codex/Claude/OpenCode/Hermes。
+## 新用户：完整版
 
-## 已安装旧版两个插件的人
+在 DSH → 插件 → 添加插件中选择/填写完整包本地文件，安装并启用，然后正常退出并重启 DSH。包内已包含群聊 Host、桌面群聊、Remote Host 和 Remote 设置。无需另外下载 `ds-bot`、`ds-harness-remote` 或上游 APK。
 
-这是一次性迁移：
+## 已有上游：配套版
 
-1. 在 DSH 插件管理里停用旧的 **ds-bot** 和 **ds-harness-remote**；不要删除 Bot 数据目录，也不要选择清除插件数据。
-2. 安装并启用合并包 **dsh-remote-groups**，正常退出并重启 DSH。
-3. 确认群聊、成员和 Remote 设置正常后，可移除两个旧插件安装包。以后只更新合并包。
+1. 保留已有 `ds-bot`、`ds-harness-remote` 安装和数据。在它们之后安装并启用配套包，重启 DSH。只装了其中一个也可以，缺失组件由配套包补齐。
+2. 配套包通过 DSH 官方 bundle 配置停用标准旧运行条目，使用独立 ID 加载增强组件；原安装文件不会被覆盖。标准入口：`bot / ds-bot`、`web-search-auto / ds-bot/web-search`、`ds-harness-remote / ds-harness-remote` 和对应 TUI 条目。
+3. 进入配套插件设置配置 Remote、成员与群聊。默认 `DSH_HOME/bot` 和 Remote 身份目录沿用；不删除数据目录。
+4. 若曾自定义 Bot 的 `home`、Remote 服务地址、CLI 设置等，在配套版组件设置中重新应用这些配置。旧配置仍属于被停用的旧入口，不会自动复制。特别是自定义 `home`，应在首次使用配套版前填回原路径。
 
-合并版沿用 `DSH_HOME/bot` 数据目录、Remote 身份目录和原有行配置标识。若旧版手工配置含 `name: ds-bot` 或 `name: ds-harness-remote` 断言，该断言不会匹配合并包内的相对路径；请在合并插件设置中重新应用对应设置。尤其使用自定义 Bot 数据目录时，应在合并组件中指定原来的 `home`，不要把新建空目录当成数据丢失。更换 DSH profile 或删除数据目录仍会影响所看到的数据。**不要同时启用旧版和合并版**，否则会重复注册群聊/连接服务。
+兼容范围：标准插件 ID 和包名、上游先于配套版加载。自定义 ID、非标准入口、用户 profile 中强制 `disabled:false` 或后来重新启用/新装上游，可能绕过配套版停用层。遇到重复界面/服务时，先停用旧上游的运行入口，再正常重启；必要时在插件管理里将配套版停用后重新启用，使其排在上游之后。**本版本没有自动识别任意自定义配置或强制覆盖用户配置的能力。**
 
-命令行等价安装（Desktop profile）：
+停用/移除配套版后，其配置层也会移除；仍安装且启用的上游会恢复自己的运行入口。默认 Bot 数据保留，但上游未必理解增强功能，回退前应备份数据，不承诺增强数据完全向后兼容。
+
+## 从独立上游改用完整版
+
+先停用旧 `ds-bot`、`ds-harness-remote`，再启用完整包并重启，保留数据目录。默认数据沿用；旧 `name` 断言不会匹配完整包相对路径，自定义配置需重填。不要同时运行完整版和旧上游。
+
+## 连接与依赖
+
+安装器需要联网获取普通运行依赖。两种包都不捆绑 DSH、各 Agent CLI、模型额度或登录凭据。配置 Remote 登录/主机授权后，手机登录同一连接服务并信任电脑。CLI 登录、模型、工作目录按自己的环境设置；电脑和 Host 需要保持运行。
+
+命令行安装（将文件名换成所选版本；已有上游请先安装上游，再执行）：
 
 ```sh
-dsh plugin --profile desktop add file:/absolute/path/dsh-remote-groups-0.1.0-preview.3.tgz --ignore-scripts
+dsh plugin --profile desktop add file:/absolute/path/dsh-remote-groups-companion-0.1.0-preview.4.tgz --ignore-scripts
 ```
-
-旧版 CLI 用户可先在 DSH 停止后，用官方 `dsh plugin --profile desktop remove ds-bot ds-harness-remote` 移除旧安装，再添加合并包。移除包与删除 `DSH_HOME/bot` 数据是两回事；请保留数据。
 
 ## 开发与打包
 
-源码仍按 `remote/`、`host/` 分开维护；发布时根包的 `files` 白名单包含两边已构建的运行文件、客户端、manifest 和许可，`plugin/cordis.patch.yml` 使用官方相对路径加载。无需用户运行构建或安装脚本。
-
-先按照 [BUILD](BUILD.md) 构建/校验两套工程，然后在仓库根目录执行 `npm run pack:plugin`。根包中的普通依赖由 DSH 插件管理器安装。GitHub 根安装也使用这个相同 manifest；推荐使用 Release 的固定 `.tgz`。
+先按照 [BUILD](BUILD.md) 构建组件，再在仓库根目录运行 `npm run pack:plugin` 和 `npm run pack:companion`。两包使用同一个运行文件/许可白名单；配套版只替换 bundle patch 和分发名称。无需安装时构建脚本。GitHub 根安装对应完整版；配套版请使用 Release 固定 `.tgz`。

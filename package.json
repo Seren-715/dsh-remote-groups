@@ -1,6 +1,6 @@
 {
   "name": "dsh-remote-groups",
-  "version": "0.1.0-preview.3",
+  "version": "0.1.0-preview.4",
   "description": "DSH Remote Groups: one plugin for phone remote access and multi-agent group chats",
   "license": "Apache-2.0",
   "type": "module",
@@ -33,6 +33,9 @@
     "README.en.md",
     "docs/INSTALL.md",
     "remote/index.js",
+    "remote/LICENSE",
+    "remote/README.en.md",
+    "remote/packages/plugin/README.md",
     "remote/packages/plugin/dist/index.js",
     "remote/packages/plugin/dist/client.github.js",
     "remote/packages/plugin/bin/ds-harness-remote.js",
@@ -44,6 +47,9 @@
     "remote/README.md",
     "remote/package.json",
     "host/ds-bot/index.js",
+    "host/LICENSE",
+    "host/NOTICE",
+    "host/README.md",
     "host/ds-bot/src/host/",
     "host/ds-bot/src/shared/",
     "host/ds-bot/client.js",
@@ -55,7 +61,8 @@
     "host/ds-bot/package.json"
   ],
   "scripts": {
-    "pack:plugin": "node scripts/pack-plugin.mjs"
+    "pack:plugin": "node scripts/pack-plugin.mjs",
+    "pack:companion": "node scripts/pack-plugin.mjs --companion"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.5",

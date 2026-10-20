@@ -504,6 +504,18 @@ window.__ModuleLoader__.load({
         locale: localeNamespace,
         inject: () => ({ control, statusFeed }),
       }, RemotePluginOptions))
+      ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
+        name: 'plugins.row.config',
+        key: 'dsh-remote-groups-companion#groups-companion-remote',
+        locale: localeNamespace,
+        inject: () => ({ control, statusFeed }),
+      }, RemotePluginOptions))
+      ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+        name: 'plugins.bundle.config',
+        key: 'dsh-remote-groups-companion',
+        locale: localeNamespace,
+        inject: () => ({ control, statusFeed }),
+      }, RemotePluginOptions))
     }
 
     function isMissingControlRoute(reason: unknown): boolean {
